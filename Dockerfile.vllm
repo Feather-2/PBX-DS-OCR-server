@@ -1,6 +1,6 @@
 # GPU image with vLLM backend for DeepSeek-OCR
-# Use CUDA 12.1 + cuDNN 9 runtime from NVIDIA base (widely available on Docker Hub)
-FROM nvidia/cuda:12.1.1-cudnn9-runtime-ubuntu22.04
+# Use CUDA 12.1 + cuDNN 8 runtime from NVIDIA base (verified available on Docker Hub)
+FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
