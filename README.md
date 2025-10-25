@@ -1,6 +1,6 @@
 DeepSeek-OCR Server (FastAPI)
 
-A high-performance document OCR server based on DeepSeek-OCR (Transformers), adapted from a PaddleOCR-VL service to a serverized architecture with DS-OCR. Includes job queue, storage, and optional OSS publishing hooks, plus CI/CD via GitHub Actions to build Docker images (CPU and GPU).
+A high-performance document OCR server based on DeepSeek-OCR (Transformers),a serverized architecture with DS-OCR. Includes job queue, storage, and optional OSS publishing hooks, plus CI/CD via GitHub Actions to build Docker images (CPU and GPU).
 
 Features
 - FastAPI HTTP API with API key auth
