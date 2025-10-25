@@ -19,13 +19,14 @@ RUN python3 -m pip install --upgrade pip
 WORKDIR /srv/app
 
 COPY requirements.txt ./
-# Install deps except torch (let vLLM/nightly manage CUDA bindings)
-# Install vLLM in same layer to save space and let it manage transformers/tokenizers versions
-RUN grep -v '^torch' requirements.txt | grep -v '^transformers' | grep -v '^tokenizers' > req.txt && \
+# Install vLLM first (it brings torch, transformers, tokenizers, pydantic, etc.)
+# Then install only missing app-specific deps to avoid conflicts
+RUN python3 -m pip install --no-cache-dir vllm --pre --extra-index-url https://wheels.vllm.ai/nightly && \
+    grep -v '^torch' requirements.txt | grep -v '^transformers' | grep -v '^tokenizers' | \
+    grep -v '^pydantic' | grep -v '^numpy' > req.txt && \
     python3 -m pip install --no-cache-dir -r req.txt && \
-    python3 -m pip install --no-cache-dir vllm --pre --extra-index-url https://wheels.vllm.ai/nightly && \
     rm req.txt && \
-    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache/pip
 
 COPY app ./app
 
