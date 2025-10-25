@@ -1,24 +1,28 @@
 # GPU image with vLLM backend for DeepSeek-OCR
-# Use PyTorch CUDA 12.1 + cuDNN 9 runtime as base to match vLLM nightly wheels
-FROM pytorch/pytorch:2.6.0-cuda12.1-cudnn9-runtime
+# Use CUDA 12.1 + cuDNN 9 runtime from NVIDIA base (widely available on Docker Hub)
+FROM nvidia/cuda:12.1.1-cudnn9-runtime-ubuntu22.04
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-venv \
     build-essential \
     libglib2.0-0 libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
+RUN python3 -m pip install --upgrade pip
+
 WORKDIR /srv/app
 
 COPY requirements.txt ./
-# torch already present; avoid reinstall
-RUN grep -v '^torch' requirements.txt > req.txt && pip install --no-cache-dir -r req.txt && rm req.txt
+# Install deps except torch (let vLLM/nightly manage CUDA bindings)
+RUN grep -v '^torch' requirements.txt > req.txt && python3 -m pip install -r req.txt && rm req.txt
 
 # Install vLLM (nightly)
-RUN pip install -U vllm --pre --extra-index-url https://wheels.vllm.ai/nightly
+RUN python3 -m pip install -U vllm --pre --extra-index-url https://wheels.vllm.ai/nightly
 
 COPY app ./app
 
