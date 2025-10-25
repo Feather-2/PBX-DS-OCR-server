@@ -1,0 +1,38 @@
+version: "3.9"
+services:
+  dsocr:
+    image: dsocr-server:cpu
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Auth
+      - APP_API_KEYS=${APP_API_KEYS:-}
+      # Backend + metrics
+      - APP_BACKEND=${APP_BACKEND:-hf}
+      - APP_METRICS_ENABLED=${APP_METRICS_ENABLED:-true}
+      # Performance & limits
+      - APP_MAX_WORKERS=${APP_MAX_WORKERS:-1}
+      - APP_MAX_QUEUE_SIZE=${APP_MAX_QUEUE_SIZE:-100}
+      - APP_MAX_UPLOAD_MB=${APP_MAX_UPLOAD_MB:-200}
+      - APP_MAX_PAGES=${APP_MAX_PAGES:-500}
+      - APP_FORCE_CPU=${APP_FORCE_CPU:-true}
+      # DS-OCR (HF) settings
+      - APP_DS_MODEL_PATH=${APP_DS_MODEL_PATH:-deepseek-ai/DeepSeek-OCR}
+      - APP_DS_DTYPE=${APP_DS_DTYPE:-bfloat16}
+      - APP_DS_BASE_SIZE=${APP_DS_BASE_SIZE:-1024}
+      - APP_DS_IMAGE_SIZE=${APP_DS_IMAGE_SIZE:-640}
+      - APP_DS_CROP_MODE=${APP_DS_CROP_MODE:-true}
+      # Storage
+      - APP_STORAGE_ROOT=/srv/app/data/jobs
+    volumes:
+      - ./data:/srv/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5)"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+  dsocr:
+    image: dsocr-server:gpu
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - APP_API_KEYS=${APP_API_KEYS:-}
+      - APP_METRICS_ENABLED=${APP_METRICS_ENABLED:-true}
+      - APP_BACKEND=${APP_BACKEND:-hf}
+      - APP_FORCE_CPU=${APP_FORCE_CPU:-false}
+      - APP_MAX_WORKERS=${APP_MAX_WORKERS:-1}
+      - APP_MAX_QUEUE_SIZE=${APP_MAX_QUEUE_SIZE:-100}
+      - APP_MEM_PER_JOB_GB=${APP_MEM_PER_JOB_GB:-8.0}
+      - APP_RESERVE_GPU_MEM_GB=${APP_RESERVE_GPU_MEM_GB:-1.0}
+      - APP_GPU_INDEX=${APP_GPU_INDEX:-0}
+      - APP_DS_MODEL_PATH=${APP_DS_MODEL_PATH:-deepseek-ai/DeepSeek-OCR}
+      - APP_DS_DTYPE=${APP_DS_DTYPE:-bfloat16}
+      - APP_DS_USE_FLASH_ATTN=${APP_DS_USE_FLASH_ATTN:-true}
+      - APP_STORAGE_ROOT=/srv/app/data/jobs
+    volumes:
+      - ./data:/srv/app/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    runtime: nvidia
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5)"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

@@ -1,0 +1,56 @@
+image:
+  repository: ghcr.io/OWNER/dsocr-server
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources: {}
+
+replicaCount: 1
+
+env:
+  APP_BACKEND: "hf"
+  APP_METRICS_ENABLED: "true"
+  APP_MAX_WORKERS: "1"
+  APP_MAX_QUEUE_SIZE: "100"
+  APP_MEM_PER_JOB_GB: "8.0"
+  APP_RESERVE_GPU_MEM_GB: "1.0"
+  APP_GPU_INDEX: "0"
+  APP_DS_MODEL_PATH: "deepseek-ai/DeepSeek-OCR"
+  APP_DS_DTYPE: "bfloat16"
+  APP_DS_USE_FLASH_ATTN: "true"
+  APP_STORAGE_ROOT: "/data/jobs"
+
+apiKeys: []  # e.g. ["sk_xxx", "sk_yyy"]
+
+persistence:
+  enabled: true
+  size: 20Gi
+  storageClassName: ""
+  accessModes: ["ReadWriteOnce"]
+
+gpu:
+  enabled: false
+  count: 1
+
+livenessProbe:
+  path: /healthz
+  initialDelaySeconds: 20
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  path: /healthz
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+serviceMonitor:
+  enabled: false
+  interval: 15s
+  labels: {}

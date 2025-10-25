@@ -1,0 +1,40 @@
+version: "3.9"
+services:
+  dsocr:
+    image: dsocr-server:vllm
+    build:
+      context: .
+      dockerfile: Dockerfile.vllm
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - APP_API_KEYS=${APP_API_KEYS:-}
+      - APP_METRICS_ENABLED=${APP_METRICS_ENABLED:-true}
+      - APP_BACKEND=vllm
+      - APP_FORCE_CPU=false
+      - APP_DS_MODEL_PATH=${APP_DS_MODEL_PATH:-deepseek-ai/DeepSeek-OCR}
+      - APP_DS_VLLM_TEMPERATURE=${APP_DS_VLLM_TEMPERATURE:-0.0}
+      - APP_DS_VLLM_MAX_TOKENS=${APP_DS_VLLM_MAX_TOKENS:-8192}
+      - APP_DS_VLLM_ENABLE_PREFIX_CACHING=${APP_DS_VLLM_ENABLE_PREFIX_CACHING:-false}
+      - APP_DS_VLLM_MM_PROCESSOR_CACHE_GB=${APP_DS_VLLM_MM_PROCESSOR_CACHE_GB:-0}
+      - APP_DS_VLLM_NGRAM_SIZE=${APP_DS_VLLM_NGRAM_SIZE:-30}
+      - APP_DS_VLLM_WINDOW_SIZE=${APP_DS_VLLM_WINDOW_SIZE:-90}
+      - APP_DS_VLLM_WHITELIST_TOKEN_IDS=${APP_DS_VLLM_WHITELIST_TOKEN_IDS:-128821,128822}
+      - APP_STORAGE_ROOT=/srv/app/data/jobs
+    volumes:
+      - ./data:/srv/app/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    runtime: nvidia
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5)"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+

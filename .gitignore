@@ -1,0 +1,8 @@
+/app/__pycache__
+/app/api/__pycache__
+/app/api/v1/__pycache__
+/app/domain/__pycache__
+/app/integrations/__pycache__
+/app/integrations/oss/__pycache__
+*.pyc
+/DeepSeek-OCR-main
