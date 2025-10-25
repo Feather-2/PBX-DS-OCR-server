@@ -14,6 +14,7 @@ services:
       - APP_METRICS_ENABLED=${APP_METRICS_ENABLED:-true}
       - APP_BACKEND=vllm
       - APP_FORCE_CPU=false
+      - APP_REQUIRE_AUTH=${APP_REQUIRE_AUTH:-true}
       - APP_DS_MODEL_PATH=${APP_DS_MODEL_PATH:-deepseek-ai/DeepSeek-OCR}
       - APP_DS_VLLM_TEMPERATURE=${APP_DS_VLLM_TEMPERATURE:-0.0}
       - APP_DS_VLLM_MAX_TOKENS=${APP_DS_VLLM_MAX_TOKENS:-8192}
@@ -23,6 +24,8 @@ services:
       - APP_DS_VLLM_WINDOW_SIZE=${APP_DS_VLLM_WINDOW_SIZE:-90}
       - APP_DS_VLLM_WHITELIST_TOKEN_IDS=${APP_DS_VLLM_WHITELIST_TOKEN_IDS:-128821,128822}
       - APP_STORAGE_ROOT=/srv/app/data/jobs
+      - APP_ENABLE_DS_MODEL=${APP_ENABLE_DS_MODEL:-true}
+      - APP_ENABLE_MCP=${APP_ENABLE_MCP:-false}
     volumes:
       - ./data:/srv/app/data
     deploy:
@@ -37,4 +40,3 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
-

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DeepSeek-OCR Server</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>DeepSeek-OCR 文档解析服务</h1>
+      <section id="status" class="card">
+        <h2>运行状态</h2>
+        <div class="grid">
+          <div><span class="k">状态</span><span id="st"></span></div>
+          <div><span class="k">运行时长</span><span id="uptime"></span></div>
+          <div><span class="k">队列</span><span id="queue"></span></div>
+          <div><span class="k">工作线程</span><span id="workers"></span></div>
+          <div><span class="k">计算后端</span><span id="backend"></span></div>
+          <div><span class="k">GPU 显存</span><span id="gpu"></span></div>
+        </div>
+      </section>
+
+      <section id="model" class="card">
+        <h2>模型与接口</h2>
+        <p>模型启用：<strong id="model-enabled">–</strong></p>
+        <p class="muted" id="model-tip"></p>
+        <details>
+          <summary>接口示例</summary>
+<pre><code>curl -X POST <span id="origin1"></span>/v1/tasks \
+-H "Authorization: Bearer sk_xxx" -H "Content-Type: application/json" \
+-d '{"url":"https://example.com/sample.pdf","is_ocr":true,"language":"ch"}'
+
+curl <span id="origin2"></span>/v1/tasks/&lt;task_id&gt;
+
+curl <span id="origin3"></span>/healthz
+</code></pre>
+        </details>
+      </section>
+
+      <section id="mcp" class="card">
+        <h2>MCP（fastmcp）</h2>
+        <p>MCP 启用：<strong id="mcp-enabled">–</strong></p>
+        <div id="mcp-how" class="muted"></div>
+        <details>
+          <summary>常用工具</summary>
+          <ul>
+            <li>set_base_url(url)</li>
+            <li>set_api_key(key)</li>
+            <li>health()</li>
+            <li>create_task_url(url, ...)</li>
+            <li>upload_file(path, ...)</li>
+            <li>task_status(task_id)</li>
+            <li>get_result(task_id, kind=md|json|zip)</li>
+          </ul>
+        </details>
+      </section>
+      <footer>
+        <a href="/metrics" target="_blank">/metrics</a>
+        <span> · </span>
+        <a href="/healthz" target="_blank">/healthz</a>
+      </footer>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+  </html>
+

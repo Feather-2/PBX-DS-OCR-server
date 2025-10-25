@@ -7,7 +7,7 @@ FastAPI 入口：
 """
 
 import time
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -25,6 +25,8 @@ from .integrations.publisher import Publisher
 from .security.tokens import TokenManager
 from .logging import setup_logging
 from .monitoring import metrics as app_metrics
+from .security.console import sign_session, verify_session
+from .security.rate_limit import RateLimiter
 from .middleware import (
     request_logger,
     http_exception_handler,
@@ -57,6 +59,9 @@ def create_app() -> FastAPI:
     app.state.job_queue.Job = Job  # type: ignore[attr-defined]
     app.state.publisher = Publisher(settings)
     app.state.token_manager = TokenManager(settings)
+    # Session secret for console auth (ephemeral if not provided)
+    import os
+    app.state.session_secret = settings.session_secret or os.urandom(32).hex()
 
     # Metrics should be registered before static mount to avoid being shadowed
     if settings.metrics_enabled:
@@ -70,6 +75,63 @@ def create_app() -> FastAPI:
     async def on_shutdown():
         app.state.job_queue.stop()
         app.state.model_manager.stop()
+
+    # Rate limiters
+    rl_default = RateLimiter(
+        rate_per_sec=max(0.1, float(settings.rate_limit_rps)),
+        burst=max(1, int(settings.rate_limit_burst)),
+    )
+    rl_login = RateLimiter(
+        rate_per_sec=max(0.1, float(settings.login_rate_per_min) / 60.0),
+        burst=max(1, int(settings.login_rate_burst)),
+    )
+
+    # 控制台登录/登出
+    @app.get("/login")
+    async def login_page():
+        if not settings.console_enabled:
+            return {"code": 404, "msg": "console disabled"}
+        return (
+            """<!doctype html><meta charset=\"utf-8\"><title>Login</title>
+<style>body{font-family:system-ui;margin:48px;max-width:420px}input{padding:8px;font-size:14px;width:100%}button{padding:8px 12px;margin-top:8px}</style>
+<h2>Console Login</h2>
+<form method=\"POST\" action=\"/login\">
+  <input type=\"password\" name=\"password\" placeholder=\"Password\" />
+  <button type=\"submit\">Login</button>
+  <p style=\"color:#666;font-size:12px\">需要设置 APP_CONSOLE_PASSWORD</p>
+  <p><a href=\"/\">返回主页</a></p>
+</form>"""
+        )
+
+    @app.post("/login")
+    async def do_login(request: Request):
+        from fastapi.responses import HTMLResponse, RedirectResponse
+
+        if not settings.console_enabled:
+            return HTMLResponse("console disabled", status_code=404)
+        form = await request.form()
+        pwd = (form.get("password") or "").strip()
+        if not settings.console_password:
+            return HTMLResponse("console password not set", status_code=403)
+        if pwd != settings.console_password:
+            return HTMLResponse("invalid password", status_code=401)
+        # issue session cookie
+        exp = int(time.time()) + max(60, settings.console_session_max_age)
+        token = sign_session(app.state.session_secret, "console", exp)
+        resp = RedirectResponse(url="/", status_code=302)
+        resp.set_cookie(
+            "dsocr_console", token, max_age=settings.console_session_max_age,
+            httponly=True, secure=settings.cookie_secure, samesite="lax", path="/"
+        )
+        return resp
+
+    @app.get("/logout")
+    async def do_logout():
+        from fastapi.responses import RedirectResponse
+
+        resp = RedirectResponse(url="/", status_code=302)
+        resp.delete_cookie("dsocr_console", path="/")
+        return resp
 
     # 路由
     app.include_router(health_router)
@@ -91,6 +153,54 @@ def create_app() -> FastAPI:
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(Exception, unhandled_exception_handler)
+
+    # 全局限流（轻量，按 IP）
+    @app.middleware("http")
+    async def rate_limiter(request: Request, call_next):
+        if not settings.rate_limit_enabled:
+            return await call_next(request)
+        path = request.url.path or "/"
+        if path in (settings.rate_limit_exempt_paths or []):
+            return await call_next(request)
+        client = request.client.host if request.client else "unknown"
+        allowed = True
+        if path == "/login" and request.method.upper() == "POST":
+            allowed = rl_login.allow(client)
+        else:
+            allowed = rl_default.allow(client)
+        if not allowed:
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse(
+                status_code=429,
+                content={"code": 429, "msg": "Too Many Requests"},
+            )
+        return await call_next(request)
+
+    # 控制台访问保护（仅对 web 控制台资源生效）
+    @app.middleware("http")
+    async def console_protect(request: Request, call_next):
+        path = request.url.path or "/"
+        # 跳过 API 与登录、健康/指标
+        if path.startswith("/v1/") or path in ("/healthz", "/metrics", "/login") or path.startswith("/layout-parsing"):
+            return await call_next(request)
+        if not settings.console_enabled:
+            return await call_next(request)
+        if not settings.console_password:
+            return await call_next(request)
+        token = request.cookies.get("dsocr_console")
+        if token and verify_session(app.state.session_secret, token):
+            return await call_next(request)
+        from fastapi.responses import HTMLResponse
+        return HTMLResponse(
+            """<!doctype html><meta charset=\"utf-8\"><title>Login Required</title>
+<style>body{font-family:system-ui;margin:48px;max-width:480px}input{padding:8px;font-size:14px;width:100%}button{padding:8px 12px;margin-top:8px}</style>
+<h2>Login Required</h2>
+<p>Web 控制台已启用访问保护。请输入密码登录。</p>
+<form method=\"POST\" action=\"/login\"> <input type=\"password\" name=\"password\" placeholder=\"Password\" /> <button type=\"submit\">Login</button> </form>
+<p style=\"color:#666;font-size:12px\">环境变量：APP_CONSOLE_PASSWORD</p>""",
+            status_code=401,
+        )
 
     return app
 

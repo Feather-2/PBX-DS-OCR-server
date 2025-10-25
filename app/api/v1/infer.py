@@ -38,6 +38,8 @@ async def layout_parsing(request: Request, payload: Dict[str, Any]):
     - dataInfo: Dict
     """
     app = request.app
+    if not app.state.settings.enable_model:
+        raise HTTPException(status_code=503, detail="Model disabled by APP_ENABLE_DS_MODEL=false")
     mm = app.state.model_manager
 
     input_arg = str(payload.get("input", "")).strip()

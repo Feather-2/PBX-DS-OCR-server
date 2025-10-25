@@ -66,6 +66,8 @@ class Settings(BaseSettings):
 
     # Backend
     backend: str = os.getenv("APP_BACKEND", "hf")  # hf | vllm
+    enable_model: bool = os.getenv("APP_ENABLE_DS_MODEL", "true").lower() == "true"
+    enable_mcp: bool = os.getenv("APP_ENABLE_MCP", "false").lower() == "true"
 
     # DeepSeek-OCR options (Transformers/hf)
     ds_model_path: str = os.getenv("APP_DS_MODEL_PATH", "deepseek-ai/DeepSeek-OCR")
@@ -96,6 +98,23 @@ class Settings(BaseSettings):
 
     # Security
     require_key_prefix: str = os.getenv("APP_REQUIRE_KEY_PREFIX", "sk_")
+    require_auth: bool = os.getenv("APP_REQUIRE_AUTH", "true").lower() == "true"
+    # Console auth
+    console_enabled: bool = os.getenv("APP_CONSOLE_ENABLED", "true").lower() == "true"
+    console_password: Optional[str] = os.getenv("APP_CONSOLE_PASSWORD")
+    console_session_max_age: int = int(os.getenv("APP_CONSOLE_SESSION_MAX_AGE", "86400"))
+    session_secret: Optional[str] = os.getenv("APP_SESSION_SECRET")
+    cookie_secure: bool = os.getenv("APP_COOKIE_SECURE", "false").lower() == "true"
+
+    # Rate limit
+    rate_limit_enabled: bool = os.getenv("APP_RATE_LIMIT_ENABLED", "true").lower() == "true"
+    rate_limit_rps: float = float(os.getenv("APP_RATE_LIMIT_RPS", "10"))
+    rate_limit_burst: int = int(os.getenv("APP_RATE_LIMIT_BURST", "20"))
+    rate_limit_exempt_paths: List[str] = Field(
+        default_factory=lambda: [p.strip() for p in os.getenv("APP_RATE_LIMIT_EXEMPT", "/healthz,/metrics").split(",") if p.strip()]
+    )
+    login_rate_per_min: float = float(os.getenv("APP_LOGIN_RATE_PER_MIN", "10"))
+    login_rate_burst: int = int(os.getenv("APP_LOGIN_RATE_BURST", "10"))
 
     # Result controls
     default_bbox: bool = os.getenv("APP_DEFAULT_BBOX", "true").lower() == "true"

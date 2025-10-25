@@ -46,10 +46,29 @@ Key Settings (env vars)
 - `APP_DS_PROMPT_OVERRIDE`: custom prompt text
 - `APP_BACKEND`: `hf` (default) or `vllm` (requires vLLM installed)
 - `APP_METRICS_ENABLED`: `true` to expose `/metrics`
+- `APP_REQUIRE_AUTH`: `true` to enforce API key for all requests (default true)
+- `APP_CONSOLE_ENABLED`: enable web console (default true)
+- `APP_CONSOLE_PASSWORD`: protect web console with password; if set, `/` 等静态资源需先登录
+- `APP_CONSOLE_SESSION_MAX_AGE`: cookie max-age seconds (default 86400)
+- `APP_SESSION_SECRET`: optional HMAC secret for console session (random if unset)
+- `APP_COOKIE_SECURE`: set `true` for HTTPS-only cookies in production
 
 CI/CD (GitHub Actions)
-- Workflow `.github/workflows/docker.yml` builds `ghcr.io/<owner>/dsocr-server:latest` (CPU) and `:gpu` tags.
-- Requires repository Packages permission (granted by default to GITHUB_TOKEN in this workflow).
+- Workflow `.github/workflows/docker.yml` builds Docker Hub images:
+  - `docker.io/feather2dev/pbx-dsocr-server:latest` (CPU)
+  - `docker.io/feather2dev/pbx-dsocr-server:cpu`
+  - `docker.io/feather2dev/pbx-dsocr-server:gpu`
+  - `docker.io/feather2dev/pbx-dsocr-server:vllm`
+- Set secrets in repository:
+  - `DOCKERHUB_USERNAME`
+  - `DOCKERHUB_TOKEN` (or password)
+- Manual run supported via workflow_dispatch; tag pushes (`v*.*.*`) produce versioned tags.
+
+Docker Hub
+- Pull examples:
+  - `docker pull feather2dev/pbx-dsocr-server:cpu`
+  - `docker pull feather2dev/pbx-dsocr-server:gpu`
+  - `docker pull feather2dev/pbx-dsocr-server:vllm`
 
 Notes
 - By default, transformers is installed; torch is unpinned to allow CPU/GPU variants.
@@ -70,3 +89,19 @@ Helm (Kubernetes)
 - Install: `helm install dsocr deploy/helm/dsocr -n default`
 - Enable ServiceMonitor (Prometheus Operator): set `serviceMonitor.enabled=true`
 - GPU scheduling: set `resources.limits.nvidia.com/gpu: 1` in values and install NVIDIA device plugin
+
+MCP (fastmcp)
+- MCP 是对 REST API 的轻量封装，默认不单独运行服务；由你的 MCP 客户端以子进程启动。
+- 代码：`mcp/dsocr_mcp.py`
+- 依赖：`fastmcp` 已在 `requirements.txt`
+- 环境变量：
+  - `DSOCR_BASE_URL`（默认 `http://localhost:8000`）
+  - `DSOCR_API_KEY`（必填，服务开启 `APP_REQUIRE_AUTH=true` 时需要）
+  - `DSOCR_ENABLE_MCP=true|false`（默认 true，false 时脚本直接退出）
+- 启动（独立测试）：
+  - `DSOCR_BASE_URL=http://localhost:8000 DSOCR_API_KEY=sk_xxx python mcp/dsocr_mcp.py`
+- 在 MCP 客户端（示例）：
+  - 命令：`python`
+  - 参数：`mcp/dsocr_mcp.py`
+  - 环境：`DSOCR_BASE_URL=http://your-host:8000`，`DSOCR_API_KEY=sk_xxx`
+  - 工具列表（示例）：`set_base_url`、`set_api_key`、`health`、`create_task_url`、`upload_file`、`task_status`、`get_result`

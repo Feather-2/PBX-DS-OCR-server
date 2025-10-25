@@ -12,7 +12,10 @@ security = HTTPBearer(auto_error=False)
 def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)):
     settings = load_settings()
     if not settings.api_keys:
-        # 如果未配置密钥，视为开发模式放行
+        # 当要求强制认证但未配置密钥时，拒绝请求
+        if getattr(settings, "require_auth", True):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="API key required")
+        # 否则视为开发模式放行
         return None
     if credentials is None or not credentials.scheme or credentials.scheme.lower() != "bearer":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Bearer token")

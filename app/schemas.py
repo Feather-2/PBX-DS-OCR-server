@@ -62,6 +62,8 @@ class HealthResponse(BaseModel):
     queue_capacity: int = 100  # 队列容量
     compute_backend: Optional[str] = None  # gpu/cpu/unknown
     fallback_reason: Optional[str] = None
+    mcp_enabled: bool = False  # MCP 功能开关（服务侧元信息）
+    model_enabled: bool = True  # 模型是否启用（可用于灰度/轻量部署）
     # Limits
     class Limits(BaseModel):
         max_upload_mb: int

@@ -60,6 +60,7 @@ async def healthz(request: Request):
         queue_capacity=job_queue.queue_capacity(),
         compute_backend=compute,
         fallback_reason=getattr(mm, "fallback_reason", None),
+        mcp_enabled=bool(getattr(settings, "enable_mcp", False)),
+        model_enabled=bool(getattr(settings, "enable_model", True)),
         limits=limits,
     )
-

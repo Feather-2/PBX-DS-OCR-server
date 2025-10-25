@@ -14,6 +14,7 @@ services:
       # Backend + metrics
       - APP_BACKEND=${APP_BACKEND:-hf}
       - APP_METRICS_ENABLED=${APP_METRICS_ENABLED:-true}
+      - APP_REQUIRE_AUTH=${APP_REQUIRE_AUTH:-true}
       # Performance & limits
       - APP_MAX_WORKERS=${APP_MAX_WORKERS:-1}
       - APP_MAX_QUEUE_SIZE=${APP_MAX_QUEUE_SIZE:-100}
@@ -28,6 +29,8 @@ services:
       - APP_DS_CROP_MODE=${APP_DS_CROP_MODE:-true}
       # Storage
       - APP_STORAGE_ROOT=/srv/app/data/jobs
+      - APP_ENABLE_DS_MODEL=${APP_ENABLE_DS_MODEL:-true}
+      - APP_ENABLE_MCP=${APP_ENABLE_MCP:-false}
     volumes:
       - ./data:/srv/app/data
     healthcheck:

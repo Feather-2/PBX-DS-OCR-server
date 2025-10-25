@@ -30,8 +30,10 @@ BASE_URL = os.environ.get("DSOCR_BASE_URL", "http://localhost:8000").rstrip("/")
 API_KEY = os.environ.get("DSOCR_API_KEY", None)
 
 
-def _headers() -> Dict[str, str]:
+def _headers(required: bool = True) -> Dict[str, str]:
     h = {"Content-Type": "application/json"}
+    if not API_KEY and required:
+        raise RuntimeError("DSOCR_API_KEY not set; call set_api_key() or set env DSOCR_API_KEY")
     if API_KEY:
         h["Authorization"] = f"Bearer {API_KEY}"
     return h
@@ -56,7 +58,7 @@ def set_api_key(key: str) -> str:
 @app.tool()
 def health() -> Dict[str, Any]:
     """Get server health info."""
-    resp = requests.get(f"{BASE_URL}/healthz", timeout=15)
+    resp = requests.get(f"{BASE_URL}/healthz", headers=_headers(required=True), timeout=15)
     resp.raise_for_status()
     return resp.json()
 
@@ -79,7 +81,7 @@ def create_task_url(
         "language": language,
         "page_ranges": page_ranges,
     }
-    resp = requests.post(f"{BASE_URL}/v1/tasks", json=payload, headers=_headers(), timeout=30)
+    resp = requests.post(f"{BASE_URL}/v1/tasks", json=payload, headers=_headers(required=True), timeout=30)
     resp.raise_for_status()
     return resp.json()
 
@@ -94,9 +96,7 @@ def upload_file(
     page_ranges: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Upload local file and create async task."""
-    headers = {}
-    if API_KEY:
-        headers["Authorization"] = f"Bearer {API_KEY}"
+    headers = _headers(required=True)
     with open(path, "rb") as f:
         files = {"file": (os.path.basename(path), f)}
         data = {
@@ -115,7 +115,7 @@ def upload_file(
 @app.tool()
 def task_status(task_id: str) -> Dict[str, Any]:
     """Get task status and result URLs."""
-    resp = requests.get(f"{BASE_URL}/v1/tasks/{task_id}", headers=_headers(), timeout=30)
+    resp = requests.get(f"{BASE_URL}/v1/tasks/{task_id}", headers=_headers(required=True), timeout=30)
     resp.raise_for_status()
     return resp.json()
 
@@ -126,17 +126,17 @@ def get_result(task_id: str, kind: str = "md") -> Any:
     kind = (kind or "md").lower().strip()
     if kind == "md":
         url = f"{BASE_URL}/v1/tasks/{task_id}/result.md"
-        resp = requests.get(url, headers=_headers(), timeout=60)
+        resp = requests.get(url, headers=_headers(required=True), timeout=60)
         resp.raise_for_status()
         return resp.text
     if kind == "json":
         url = f"{BASE_URL}/v1/tasks/{task_id}/result.json"
-        resp = requests.get(url, headers=_headers(), timeout=60)
+        resp = requests.get(url, headers=_headers(required=True), timeout=60)
         resp.raise_for_status()
         return resp.json()
     if kind == "zip":
         url = f"{BASE_URL}/v1/tasks/{task_id}/download.zip"
-        resp = requests.get(url, headers=_headers(), timeout=120)
+        resp = requests.get(url, headers=_headers(required=True), timeout=120)
         resp.raise_for_status()
         out = os.path.abspath(f"{task_id}.zip")
         with open(out, "wb") as f:
@@ -146,5 +146,7 @@ def get_result(task_id: str, kind: str = "md") -> Any:
 
 
 if __name__ == "__main__":
+    # Optional gating by env var
+    if os.environ.get("DSOCR_ENABLE_MCP", "true").lower() != "true":
+        raise SystemExit("MCP disabled by DSOCR_ENABLE_MCP!=true")
     app.run()
-

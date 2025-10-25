@@ -31,6 +31,9 @@ async def create_task_json(
 ):
     settings, job_queue = _services(request)
 
+    if not settings.enable_model:
+        raise HTTPException(status_code=503, detail="Model disabled by APP_ENABLE_DS_MODEL=false")
+
     if not payload.url:
         raise HTTPException(status_code=400, detail="Missing url. Or use /v1/tasks/upload to upload a file.")
 
@@ -82,6 +85,8 @@ async def create_task_upload(
     model_version: Optional[str] = None,
 ):
     settings, job_queue = _services(request)
+    if not settings.enable_model:
+        raise HTTPException(status_code=503, detail="Model disabled by APP_ENABLE_DS_MODEL=false")
     storage_root = init_storage(settings.storage_root)
     task_id, paths = new_job(storage_root.as_posix(), filename=file.filename or "input.pdf")
 
