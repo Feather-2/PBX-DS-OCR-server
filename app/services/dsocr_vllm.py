@@ -59,6 +59,8 @@ class DeepSeekOCRVLLM:
                 enable_prefix_caching=bool(self.s.ds_vllm_enable_prefix_caching),
                 mm_processor_cache_gb=int(self.s.ds_vllm_mm_processor_cache_gb),
                 logits_processors=logits_procs if logits_procs else None,
+                # prefer 'spawn' to avoid CUDA re-init errors in forked workers
+                mp_start_method="spawn",
             )
 
             whitelist_ids: Optional[set[int]] = None
