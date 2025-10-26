@@ -29,6 +29,7 @@ RUN python3 -m pip install --no-cache-dir vllm --pre --extra-index-url https://w
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache/pip
 
 COPY app ./app
+COPY web ./web
 
 ENV APP_BACKEND=vllm \
     APP_FORCE_CPU=false

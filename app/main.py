@@ -40,14 +40,37 @@ def create_app() -> FastAPI:
     app = FastAPI(title="DeepSeek-OCR 文档解析服务 (v1)")
     setup_logging(settings.log_level)
 
-    # CORS
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_allow_origins or ["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    # CORS (configurable)
+    try:
+        allow_origins = settings.cors_allow_origins or ["*"]
+        allow_credentials = bool(getattr(settings, "cors_allow_credentials", True))
+        # If wildcard origins are used with credentials, relax credentials to comply with CORS spec
+        if any(o == "*" for o in allow_origins) and allow_credentials:
+            allow_credentials = False
+            try:
+                import logging as _logging
+                _logging.getLogger("dsocr-service").warning(
+                    "CORS: '*' with credentials is not allowed; disabling credentials."
+                )
+            except Exception:
+                pass
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=allow_origins,
+            allow_origin_regex=getattr(settings, "cors_allow_origin_regex", None),
+            allow_credentials=allow_credentials,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    except Exception:
+        # Fallback to permissive CORS if configuration fails
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=False,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     # 依赖项注册（状态）
     app.state.settings = settings

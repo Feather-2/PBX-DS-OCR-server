@@ -17,6 +17,7 @@ COPY requirements.txt ./
 RUN grep -v '^torch' requirements.txt > req.txt && pip install --no-cache-dir -r req.txt && rm req.txt
 
 COPY app ./app
+COPY web ./web
 
 ENV APP_FORCE_CPU=false
 

@@ -95,6 +95,8 @@ class Settings(BaseSettings):
     port: int = int(os.getenv("APP_PORT", "8000"))
     log_level: str = os.getenv("APP_LOG_LEVEL", "info")
     cors_allow_origins: List[str] = Field(default_factory=lambda: os.getenv("APP_CORS_ALLOW_ORIGINS", "*").split(","))
+    cors_allow_credentials: bool = os.getenv("APP_CORS_ALLOW_CREDENTIALS", "true").lower() == "true"
+    cors_allow_origin_regex: Optional[str] = os.getenv("APP_CORS_ALLOW_ORIGIN_REGEX")
 
     # Security
     require_key_prefix: str = os.getenv("APP_REQUIRE_KEY_PREFIX", "sk_")
