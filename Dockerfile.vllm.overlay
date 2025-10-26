@@ -8,7 +8,7 @@ COPY app ./app
 COPY web ./web
 
 # Install minimal extra deps required by DeepSeek-OCR remote code
-RUN python3 -m pip install --no-cache-dir addict matplotlib
+RUN python3 -m pip install --no-cache-dir addict matplotlib easydict
 
 # Keep defaults explicit
 ENV APP_BACKEND=vllm \

@@ -36,6 +36,14 @@ class DeepSeekOCRVLLM:
 
     def _init_vllm(self):
         try:
+            # Ensure CUDA is initialized in a spawned subprocess, not in a forked one
+            try:
+                import multiprocessing as _mp
+                if _mp.get_start_method(allow_none=True) != "spawn":
+                    _mp.set_start_method("spawn", force=True)
+            except Exception:
+                pass
+
             from vllm import LLM, SamplingParams
             # NGram logits processor is recommended by DS-OCR
             try:
@@ -150,4 +158,3 @@ class DeepSeekOCRVLLM:
                 )
             )
         return results
-
