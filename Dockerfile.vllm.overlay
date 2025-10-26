@@ -1,0 +1,16 @@
+# Lightweight overlay build: reuse the published vLLM image and copy updated app/web
+FROM feather2dev/pbx-dsocr-server:vllm
+
+WORKDIR /srv/app
+
+# Copy updated code and static assets
+COPY app ./app
+COPY web ./web
+
+# Keep defaults explicit
+ENV APP_BACKEND=vllm \
+    APP_FORCE_CPU=false
+
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+

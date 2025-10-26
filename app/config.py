@@ -94,7 +94,10 @@ class Settings(BaseSettings):
     host: str = os.getenv("APP_HOST", "0.0.0.0")
     port: int = int(os.getenv("APP_PORT", "8000"))
     log_level: str = os.getenv("APP_LOG_LEVEL", "info")
-    cors_allow_origins: List[str] = Field(default_factory=lambda: os.getenv("APP_CORS_ALLOW_ORIGINS", "*").split(","))
+    # Keep as raw string to avoid pydantic-settings attempting JSON parse on List[str]
+    cors_allow_origins: Optional[str] = os.getenv("APP_CORS_ALLOW_ORIGINS", "*")
+    cors_allow_credentials: bool = os.getenv("APP_CORS_ALLOW_CREDENTIALS", "true").lower() == "true"
+    cors_allow_origin_regex: Optional[str] = os.getenv("APP_CORS_ALLOW_ORIGIN_REGEX")
     cors_allow_credentials: bool = os.getenv("APP_CORS_ALLOW_CREDENTIALS", "true").lower() == "true"
     cors_allow_origin_regex: Optional[str] = os.getenv("APP_CORS_ALLOW_ORIGIN_REGEX")
 
@@ -143,16 +146,7 @@ class Settings(BaseSettings):
             return [str(x).strip() for x in v if str(x).strip()]
         return v
 
-    @field_validator("cors_allow_origins", mode="before")
-    @classmethod
-    def _parse_cors(cls, v):
-        if v is None or v == "":
-            return ["*"]
-        if isinstance(v, str):
-            return [x.strip() for x in v.split(",") if x.strip()]
-        if isinstance(v, (list, tuple)):
-            return [str(x).strip() for x in v if str(x).strip()]
-        return v
+    # No validator for cors_allow_origins: parsing is done in app.main to avoid env JSON parsing
 
 
 class RuntimeInfo(BaseModel):

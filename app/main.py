@@ -42,7 +42,15 @@ def create_app() -> FastAPI:
 
     # CORS (configurable)
     try:
-        allow_origins = settings.cors_allow_origins or ["*"]
+        raw_origins = getattr(settings, "cors_allow_origins", "*")
+        allow_origins = ["*"]
+        if isinstance(raw_origins, str):
+            s = raw_origins.strip()
+            if s:
+                allow_origins = [x.strip() for x in s.split(",") if x.strip()]
+        elif isinstance(raw_origins, (list, tuple)):
+            allow_origins = [str(x).strip() for x in raw_origins if str(x).strip()]
+
         allow_credentials = bool(getattr(settings, "cors_allow_credentials", True))
         # If wildcard origins are used with credentials, relax credentials to comply with CORS spec
         if any(o == "*" for o in allow_origins) and allow_credentials:
