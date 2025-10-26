@@ -7,10 +7,12 @@ WORKDIR /srv/app
 COPY app ./app
 COPY web ./web
 
+# Install minimal extra deps required by DeepSeek-OCR remote code
+RUN python3 -m pip install --no-cache-dir addict matplotlib
+
 # Keep defaults explicit
 ENV APP_BACKEND=vllm \
     APP_FORCE_CPU=false
 
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-
