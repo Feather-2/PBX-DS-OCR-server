@@ -35,6 +35,14 @@ def _parse_dtype(name: str):
         import torch
 
         m = name.strip().lower()
+        if m in {"auto"}:
+            # Prefer bfloat16 on CUDA (Ampere/Ada+), else float32 on CPU
+            try:
+                if torch.cuda.is_available():
+                    return torch.bfloat16
+            except Exception:
+                pass
+            return torch.float32
         if m in {"bf16", "bfloat16"}:
             return torch.bfloat16
         if m in {"fp16", "float16", "half"}:

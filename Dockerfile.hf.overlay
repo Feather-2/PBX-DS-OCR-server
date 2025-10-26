@@ -1,0 +1,25 @@
+# HF-stable overlay image: reuse the published vLLM base, but pin libs for stable HF backend
+FROM feather2dev/pbx-dsocr-server:vllm
+
+WORKDIR /srv/app
+
+# Copy updated code and static assets
+COPY app ./app
+COPY web ./web
+
+# Install/align dependencies for stable HF backend
+# - Keep transformers/tokenizers at versions compatible with DS-OCR
+# - Add remote-code deps often required by DS-OCR
+RUN python3 -m pip install --no-cache-dir \
+    transformers==4.46.3 \
+    tokenizers==0.20.3 \
+    addict matplotlib easydict
+
+# Defaults geared for stability on GPU
+ENV APP_BACKEND=hf \
+    APP_FORCE_CPU=false \
+    APP_DS_USE_FLASH_ATTN=false
+
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
