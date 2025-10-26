@@ -85,12 +85,24 @@ class ModelManager:
         try:
             backend = (self.settings.backend or "hf").lower()
             if backend == "vllm":
-                model = DeepSeekOCRVLLM(self.settings)
+                try:
+                    model = DeepSeekOCRVLLM(self.settings)
+                    self.backend = "vllm"
+                except Exception as e:
+                    # Graceful fallback to HF backend if vLLM is unavailable or model config invalid
+                    self.fallback_reason = f"vLLM init failed: {e}"
+                    try:
+                        self._logger.warning("vLLM init failed, falling back to HF: %s", e)
+                    except Exception:
+                        pass
+                    model = DeepSeekOCRModel(self.settings)
+                    self.backend = "hf"
             else:
                 model = DeepSeekOCRModel(self.settings)
+                self.backend = "hf"
             self.runtime_device = device
             try:
-                self._logger.info("DeepSeek-OCR loaded (backend=%s, device=%s)", backend, self.runtime_device)
+                self._logger.info("DeepSeek-OCR loaded (backend=%s, device=%s)", self.backend, self.runtime_device)
             except Exception:
                 pass
             return model
