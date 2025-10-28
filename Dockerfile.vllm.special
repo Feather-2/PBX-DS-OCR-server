@@ -1,0 +1,20 @@
+# vLLM-special overlay: reuse the published vLLM base, keep its
+# transformers/tokenizers versions, and add DS-OCR remote-code deps.
+FROM feather2dev/pbx-dsocr-server:vllm
+
+WORKDIR /srv/app
+
+# Updated app code and static assets
+COPY app ./app
+COPY web ./web
+
+# Extra dependencies required by DeepSeek-OCR remote code
+RUN python3 -m pip install --no-cache-dir addict matplotlib easydict
+
+# Defaults suitable for vLLM backend
+ENV APP_BACKEND=vllm \
+    APP_FORCE_CPU=false
+
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
