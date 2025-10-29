@@ -24,6 +24,15 @@ GPU image (needs NVIDIA runtime):
 - Build: `docker build -f Dockerfile.gpu -t dsocr-server:gpu .`
 - Run: `docker run --rm --gpus all -p 8000:8000 -e APP_API_KEYS="sk_xxx" dsocr-server:gpu`
 
+ vLLM overlay (fast rebuild; reuses base vLLM image):
+ - Build: `docker build -f Dockerfile.vllm.overlay -t dsocr-server:vllm-overlay .`
+ - Run (quick health check without loading model):
+   - `docker run --rm -p 8000:8000 -e APP_API_KEY=sk_test -e APP_ENABLE_DS_MODEL=false -e APP_BACKEND=vllm dsocr-server:vllm-overlay`
+   - Check: `Invoke-WebRequest -UseBasicParsing http://localhost:8000/healthz | Select-Object -ExpandProperty Content`
+ - Run (with GPU + model):
+   - `docker run --rm --gpus all -p 8000:8000 -e APP_API_KEY=sk_test -e APP_BACKEND=vllm dsocr-server:vllm-overlay`
+ - Versioning note: overlay 保持基础镜像中的 transformers/tokenizers 版本以确保与 vLLM 兼容，仅额外安装 DS‑OCR 远程代码依赖（addict/matplotlib/easydict）。
+
 Endpoints
 - POST `/v1/tasks` create from URL
 - POST `/v1/tasks/upload` upload a file
@@ -105,3 +114,13 @@ MCP (fastmcp)
   - 参数：`mcp/dsocr_mcp.py`
   - 环境：`DSOCR_BASE_URL=http://your-host:8000`，`DSOCR_API_KEY=sk_xxx`
   - 工具列表（示例）：`set_base_url`、`set_api_key`、`health`、`create_task_url`、`upload_file`、`task_status`、`get_result`
+
+FAQ
+- `APP_API_KEYS` 与 `APP_API_KEY`：
+  - `APP_API_KEYS` 支持逗号分隔或 JSON 数组，但在某些环境变量解析器下可能被当作 JSON 尝试解析；若仅需单个密钥，推荐使用 `APP_API_KEY` 以避免解析歧义。
+  - 两者最终会合并到配置的 `api_keys` 列表中。
+- Windows 下健康检查：PowerShell 中 `curl` 实际为 `Invoke-WebRequest` 的别名，参数不同。
+  - 示例：`Invoke-WebRequest -UseBasicParsing http://localhost:8000/healthz | Select-Object -ExpandProperty Content`
+- CORS 与凭据：当 `APP_CORS_ALLOW_ORIGINS='*'` 且 `APP_CORS_ALLOW_CREDENTIALS=true` 时，会自动关闭凭据以符合 CORS 规范；生产环境请改为明确域名列表。
+- vLLM overlay 版本策略：overlay 仅添加 DS‑OCR 远程代码依赖，不修改 transformers/tokenizers；核心库版本由基础 vLLM 镜像决定。
+- 无模型快速自检：将 `APP_ENABLE_DS_MODEL=false` 可快速起服务并检查 `/healthz`，用于镜像/环境连通性验证。

@@ -1,3 +1,10 @@
+## Notes about vLLM overlay images
+# The vLLM overlay (Dockerfile.vllm.overlay) reuses the published base image
+# and intentionally DOES NOT modify transformers/tokenizers to keep vLLM compatibility.
+# Only extra DS-OCR remote-code deps are added there (addict/matplotlib/easydict).
+# If you need to adjust core ML library versions for vLLM, do it in the base image,
+# not via the overlay.
+
 fastapi==0.115.4
 uvicorn[standard]==0.32.0
 pydantic==2.9.2

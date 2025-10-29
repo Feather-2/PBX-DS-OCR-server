@@ -8,8 +8,8 @@ COPY app ./app
 COPY web ./web
 
 # Install minimal extra deps required by DeepSeek-OCR remote code
-# Pin transformers to a version compatible with DeepSeek-OCR's remote code
-RUN python3 -m pip install --no-cache-dir transformers==4.44.2 addict matplotlib easydict
+# Keep base image's transformers/tokenizers to remain vLLM-compatible
+RUN python3 -m pip install --no-cache-dir addict matplotlib easydict
 
 # Keep defaults explicit
 ENV APP_BACKEND=vllm \
