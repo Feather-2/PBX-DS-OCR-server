@@ -1,7 +1,7 @@
 # Docker Desktop VHDX 文件迁移脚本
 # 将 docker_data.vhdx 从 C 盘迁移到 G:\dockerfile
 
-$SourcePath = "C:\Users\wing\AppData\Local\Docker\wsl"
+$SourcePath = Join-Path $env:USERPROFILE "AppData\Local\Docker\wsl"
 $TargetPath = "G:\dockerfile\wsl"
 $BackupPath = "C:\Users\wing\AppData\Local\Docker\wsl.backup"
 
@@ -35,7 +35,7 @@ Write-Host "`n[2/9] 检查 G 盘空间..." -ForegroundColor Yellow
 $drive = Get-PSDrive -Name "G" -ErrorAction SilentlyContinue
 if ($drive) {
     $freeSpaceGB = [math]::Round($drive.Free/1GB, 2)
-    Write-Host "   可用空间: $freeSpaceGB GB" -ForegroundColor White
+Write-Host "   可用空间: $freeSpaceGB GB" -ForegroundColor White
     if ($freeSpaceGB -lt 20) {
         Write-Host "   警告: 空间可能不足！" -ForegroundColor Red
     }
@@ -70,7 +70,7 @@ try {
     Copy-Item -Path "$SourcePath\*" -Destination $TargetPath -Recurse -Force
     Write-Host "   复制成功" -ForegroundColor Green
 } catch {
-    Write-Host "   复制失败: $_" -ForegroundColor Red
+Write-Host "   复制失败: $_" -ForegroundColor Red
     exit 1
 }
 

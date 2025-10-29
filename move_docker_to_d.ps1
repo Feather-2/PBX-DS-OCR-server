@@ -12,13 +12,13 @@ $TempExport = Join-Path $TargetDrive "temp_docker_export"
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "Docker Desktop 数据迁移工具" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "当前位置: C:\Users\wing\AppData\Local\Docker\wsl\disk" -ForegroundColor Yellow
+Write-Host ("当前位置: " + (Join-Path $env:USERPROFILE "AppData\\Local\\Docker\\wsl\\disk")) -ForegroundColor Yellow
 Write-Host "目标位置: $NewLocation" -ForegroundColor Green
 Write-Host ""
 
 # 检查当前 Docker 数据大小
 Write-Host "1. 检查当前数据大小..." -ForegroundColor Yellow
-$currentVhdx = Get-ChildItem -Path "C:\Users\wing\AppData\Local\Docker\wsl\disk" -Filter "*.vhdx" -ErrorAction SilentlyContinue
+$currentVhdx = Get-ChildItem -Path (Join-Path $env:USERPROFILE "AppData\Local\Docker\wsl\disk") -Filter "*.vhdx" -ErrorAction SilentlyContinue
 if ($currentVhdx) {
     foreach ($file in $currentVhdx) {
         $sizeGB = [math]::Round($file.Length/1GB, 2)
@@ -122,6 +122,6 @@ Write-Host "新位置: $NewLocation\data" -ForegroundColor Green
 Write-Host "现在可以启动 Docker Desktop 了" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "提示: 如果 Docker 运行正常，可以删除旧的 vhdx 文件：" -ForegroundColor Cyan
-Write-Host "C:\Users\wing\AppData\Local\Docker\wsl\disk" -ForegroundColor White
+Write-Host (Join-Path $env:USERPROFILE "AppData\Local\Docker\wsl\disk") -ForegroundColor White
 
 

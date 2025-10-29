@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # 推送镜像到云服务平台，如共绩算力私有仓库
-# 用途：将 GHCR 镜像同步到 harbor1.suanleme.cn/wing
+# 用途：将 GHCR 镜像同步到 harbor1.suanleme.cn/<project>
 #
 
 set -e
@@ -9,9 +9,9 @@ set -e
 # 配置
 GHCR_IMAGE="ghcr.io/feather-2/pbx-ocr-deploy"
 HARBOR_REGISTRY="harbor1.suanleme.cn"
-HARBOR_PROJECT="wing"
+HARBOR_PROJECT="<project>"
 HARBOR_IMAGE="$HARBOR_REGISTRY/$HARBOR_PROJECT/pbx-ocr-deploy"
-HARBOR_USERNAME="wing"
+HARBOR_USERNAME="<username>"
 
 # 从参数获取标签，默认为 latest
 TAG="${1:-latest}"

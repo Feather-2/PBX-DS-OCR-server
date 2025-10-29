@@ -1,15 +1,15 @@
 @echo off
 REM 推送镜像到云服务平台，如共绩算力私有仓库
-REM 用途：将 GHCR 镜像同步到 harbor1.suanleme.cn/wing
+REM 用途：将 GHCR 镜像同步到 harbor1.suanleme.cn/<project>
 
 setlocal
 
 REM 配置
 set GHCR_IMAGE=ghcr.io/feather-2/pbx-ocr-deploy
 set HARBOR_REGISTRY=harbor1.suanleme.cn
-set HARBOR_PROJECT=wing
+set HARBOR_PROJECT=<project>
 set HARBOR_IMAGE=%HARBOR_REGISTRY%/%HARBOR_PROJECT%/pbx-ocr-deploy
-set HARBOR_USERNAME=wing
+set HARBOR_USERNAME=<username>
 
 REM 从参数获取标签，默认为 latest
 set TAG=%1

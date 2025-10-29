@@ -10,7 +10,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 
 # 检查当前 Docker 数据
 Write-Host "`n[1/10] 检查当前数据..." -ForegroundColor Yellow
-$currentPath = "C:\Users\wing\AppData\Local\Docker\wsl\disk"
+$currentPath = Join-Path $env:USERPROFILE "AppData\Local\Docker\wsl\disk"
 if (Test-Path $currentPath) {
     $vhdxFiles = Get-ChildItem -Path $currentPath -Filter "*.vhdx" -Recurse -ErrorAction SilentlyContinue
     foreach ($file in $vhdxFiles) {
@@ -116,6 +116,6 @@ Write-Host "`n下一步:" -ForegroundColor Yellow
 Write-Host "1. 启动 Docker Desktop" -ForegroundColor White
 Write-Host "2. 检查 Docker 是否正常工作" -ForegroundColor White
 Write-Host "3. 如果一切正常，可以手动删除旧文件:" -ForegroundColor White
-Write-Host "   C:\Users\wing\AppData\Local\Docker\wsl\disk" -ForegroundColor Gray
+Write-Host (Join-Path $env:USERPROFILE "AppData\Local\Docker\wsl\disk") -ForegroundColor Gray
 
 

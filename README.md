@@ -81,11 +81,11 @@ Docker Hub
   - `docker pull feather2dev/pbx-dsocr-server:vllm-overlay`
 
 Push to Harbor (suanleme)
-- Login: `docker login harbor1.suanleme.cn -u wing`
+- Login: `docker login harbor1.suanleme.cn -u <username>`
 - Build overlay locally: `docker build -f Dockerfile.vllm.overlay -t pbx-dsocr-server:vllm-overlay .`
-- Tag: `docker tag pbx-dsocr-server:vllm-overlay harbor1.suanleme.cn/wing/pbx-dsocr-server:vllm-overlay`
-- Push: `docker push harbor1.suanleme.cn/wing/pbx-dsocr-server:vllm-overlay`
-- Optional versioned tag: `docker tag pbx-dsocr-server:vllm-overlay harbor1.suanleme.cn/wing/pbx-dsocr-server:vYYYY.MM.DD-<sha>` then push it
+- Tag: `docker tag pbx-dsocr-server:vllm-overlay harbor1.suanleme.cn/<project>/pbx-dsocr-server:vllm-overlay`
+- Push: `docker push harbor1.suanleme.cn/<project>/pbx-dsocr-server:vllm-overlay`
+- Optional versioned tag: `docker tag pbx-dsocr-server:vllm-overlay harbor1.suanleme.cn/<project>/pbx-dsocr-server:vYYYY.MM.DD-<sha>` then push it
 
 Notes
 - By default, transformers is installed; torch is unpinned to allow CPU/GPU variants.
