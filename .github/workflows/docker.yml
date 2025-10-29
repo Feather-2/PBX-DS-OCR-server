@@ -11,6 +11,7 @@ permissions:
 
 env:
   IMAGE_REPO: feather2dev/pbx-dsocr-server
+  VLLM_BASE: nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 
 jobs:
   build-and-push:
@@ -92,3 +93,5 @@ jobs:
           tags: |
             ${{ env.IMAGE_REPO }}:vllm
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BASE_IMAGE=${{ env.VLLM_BASE }}
