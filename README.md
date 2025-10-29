@@ -78,6 +78,7 @@ Docker Hub
   - `docker pull feather2dev/pbx-dsocr-server:cpu`
   - `docker pull feather2dev/pbx-dsocr-server:gpu`
   - `docker pull feather2dev/pbx-dsocr-server:vllm`
+  - `docker pull feather2dev/pbx-dsocr-server:vllm-overlay`
 
 Notes
 - By default, transformers is installed; torch is unpinned to allow CPU/GPU variants.
