@@ -81,6 +81,16 @@ Docker Hub
   - `docker pull feather2dev/pbx-dsocr-server:vllm-overlay`
 
 Push to Harbor (suanleme)
+Option A — Scripts (sync a registry image)
+- Windows (.bat):
+  - `set HARBOR_PROJECT=<project> && set HARBOR_USERNAME=<username>`
+  - `push-to-suanleme.bat vllm-overlay harbor1.suanleme.cn`
+- Linux/macOS (.sh):
+  - `HARBOR_PROJECT=<project> HARBOR_USERNAME=<username> ./push-to-suanleme.sh vllm-overlay harbor1.suanleme.cn`
+- Args order (both scripts): `[TAG REGISTRY PROJECT USERNAME GHCR_IMAGE HARBOR_IMAGE_NAME]`；参数优先于环境变量。
+- 默认值（若未提供）：`TAG=latest`，`REGISTRY=harbor1.suanleme.cn`，`GHCR_IMAGE=ghcr.io/feather-2/pbx-ocr-deploy`，`HARBOR_IMAGE_NAME=pbx-ocr-deploy`。
+
+Option B — Manual (push locally built overlay)
 - Login: `docker login harbor1.suanleme.cn -u <username>`
 - Build overlay locally: `docker build -f Dockerfile.vllm.overlay -t pbx-dsocr-server:vllm-overlay .`
 - Tag: `docker tag pbx-dsocr-server:vllm-overlay harbor1.suanleme.cn/<project>/pbx-dsocr-server:vllm-overlay`
