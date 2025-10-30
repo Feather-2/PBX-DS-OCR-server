@@ -19,7 +19,7 @@ import logging
 from PIL import Image
 
 from ..config import Settings
-from .dsocr_model import DSResult, _parse_page_ranges, _pdf_to_images
+from .dsocr_model import DSResult, _parse_page_ranges, _pdf_to_images, DEFAULT_DPI, safe_image_open
 
 
 class DeepSeekOCRVLLM:
@@ -126,13 +126,13 @@ class DeepSeekOCRVLLM:
             except Exception:
                 total = 0
             pages = _parse_page_ranges(page_ranges, total) if total > 0 else None
-            pil_images = _pdf_to_images(path, dpi=144, pages=pages)
+            pil_images = _pdf_to_images(path, dpi=DEFAULT_DPI, pages=pages)
             if pages:
                 items = list(zip(pages, pil_images))
             else:
                 items = [(i + 1, im) for i, im in enumerate(pil_images)]
         else:
-            items = [(1, Image.open(path).convert("RGB"))]
+            items = [(1, safe_image_open(path))]
 
         # Batch through vLLM
         model_inputs = [

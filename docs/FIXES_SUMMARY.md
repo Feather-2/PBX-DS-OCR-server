@@ -5,7 +5,7 @@
 
 ## 修复概览
 
-本次修复解决了代码审查中发现的所有 P0、P1 和 P2 级别问题，共计 12 个问题。
+本次修复解决了代码审查中发现的所有 P0、P1 和 P2 级别问题，以及补充发现的问题，共计 16 个问题。
 
 ---
 
@@ -340,19 +340,87 @@ logger.log(log_level, ...)
 
 ---
 
+## 🔄 补充修复（第二轮审查）
+
+### P0 - 严重问题补充
+
+#### 14. task_id 路径遍历风险修复 ✅
+**文件**: `app/api/v1/tasks.py`, `app/api/v1/publish.py`
+**修复内容**:
+- 创建 `app/utils/security.py` 安全工具模块
+- 添加 `validate_task_id()` 函数验证 UUID 格式
+- 在所有使用 `task_id` 的端点添加验证（7 个端点）
+
+**新增文件**: `app/utils/security.py`
+
+#### 15. 删除操作路径安全验证 ✅
+**文件**: `app/api/v1/tasks.py`
+**修复内容**:
+- 使用 `validate_path_in_storage()` 函数验证路径
+- 确保删除路径在 `storage_root` 内
+- Token 下载路径也添加了验证
+
+### P1 - 重要问题补充
+
+#### 16. Image.open DoS 防护 ✅
+**文件**: `app/services/dsocr_model.py`, `app/services/dsocr_vllm.py`
+**修复内容**:
+- 添加 `safe_image_open()` 函数
+- 限制图片最大尺寸为 8192x8192
+- 添加 `MAX_IMAGE_SIZE` 常量
+
+#### 17. vLLM 魔法数字提取 ✅
+**文件**: `app/services/dsocr_vllm.py`
+**修复内容**:
+- 从 `dsocr_model` 导入 `DEFAULT_DPI` 常量
+- 统一使用常量替代硬编码
+
+---
+**文件**: `app/services/dsocr_model.py`, `app/middleware.py`
+**修复内容**:
+- 修复重复的条件检查 (`self._dtype is not None and self._dtype is not None`)
+- 优化日志级别：根据响应状态码选择适当的日志级别
+- 移除未使用的导入
+
+**修复前**:
+```python
+if self._dtype is not None and self._dtype is not None:  # 重复检查
+    self._model = self._model.to(self._dtype)
+
+logging.getLogger("dsocr-service").info(...)  # 所有请求都用 info
+```
+
+**修复后**:
+```python
+if self._dtype is not None:  # 单次检查
+    self._model = self._model.to(self._dtype)
+
+# 根据状态码选择日志级别
+if status_code >= 500:
+    log_level = logging.ERROR
+elif status_code >= 400:
+    log_level = logging.WARNING
+else:
+    log_level = logging.INFO
+logger.log(log_level, ...)
+```
+
+---
+
 ## 📊 修复统计
 
-- **严重问题 (P0)**: 4 个 ✅
-- **重要问题 (P1)**: 5 个 ✅ (新增: RateLimiter 后台清理、JSON 写入优化)
-- **代码质量 (P2)**: 3 个 ✅ (新增: 配置验证、魔法数字提取)
-- **总计**: 12 个问题全部修复 ✅
+- **严重问题 (P0)**: 6 个 ✅ (原始 4 个 + 补充 2 个)
+- **重要问题 (P1)**: 7 个 ✅ (原始 5 个 + 补充 2 个)
+- **代码质量 (P2)**: 3 个 ✅
+- **总计**: 16 个问题全部修复 ✅
 
 ## 🎯 修复效果
 
-1. **安全性提升**: 路径遍历防护更严格，异常信息不再泄露
+1. **安全性提升**: 路径遍历防护更严格，异常信息不再泄露，task_id 验证增强，所有路径操作都有验证
 2. **性能优化**: API Key 验证性能提升，NVML 初始化优化，Token I/O 异步化，RateLimiter 后台清理，JSON 写入优化
 3. **稳定性提升**: 文件上传原子写入，队列竞态条件修复，临时文件清理改进
 4. **代码质量**: 日志级别优化，重复代码清理，魔法数字提取，配置验证增强
+5. **DoS 防护**: 图片尺寸限制防止内存耗尽攻击
 
 ## 📝 注意事项
 

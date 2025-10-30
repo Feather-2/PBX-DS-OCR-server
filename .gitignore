@@ -6,3 +6,5 @@
 /app/integrations/oss/__pycache__
 *.pyc
 /DeepSeek-OCR-main
+/docs
+docs/FIXES_SUMMARY.md

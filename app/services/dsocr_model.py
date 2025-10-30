@@ -34,6 +34,30 @@ DEFAULT_DPI = 144
 DEFAULT_ZOOM = DEFAULT_DPI / 72.0
 IMAGE_QUALITY_JPEG = 85
 IMAGE_QUALITY_INFERENCE = 95
+MAX_IMAGE_SIZE = (8192, 8192)  # 最大图片尺寸 (width, height)，防止 DoS
+
+
+def safe_image_open(path: Path) -> Image.Image:
+    """
+    安全打开图片，限制尺寸以防止 DoS 攻击。
+
+    Args:
+        path: 图片文件路径
+
+    Returns:
+        Image.Image: RGB 格式的图片对象
+
+    Raises:
+        ValueError: 如果图片尺寸超过限制
+    """
+    img = Image.open(path)
+    # 检查图片尺寸
+    if img.size[0] > MAX_IMAGE_SIZE[0] or img.size[1] > MAX_IMAGE_SIZE[1]:
+        raise ValueError(
+            f"Image too large: {img.size}, max: {MAX_IMAGE_SIZE}. "
+            f"This may cause memory issues."
+        )
+    return img.convert("RGB")
 
 
 def _parse_dtype(name: str):
@@ -329,14 +353,14 @@ class DeepSeekOCRModel:
             except Exception:
                 total = 0
             pages = _parse_page_ranges(page_ranges, total) if total > 0 else None
-            pil_images = _pdf_to_images(path, dpi=144, pages=pages)
+            pil_images = _pdf_to_images(path, dpi=DEFAULT_DPI, pages=pages)
             # Map 1-based page indexes aligning with pages list when provided
             if pages:
                 images = list(zip(pages, pil_images))
             else:
                 images = [(i + 1, im) for i, im in enumerate(pil_images)]
         else:
-            img = Image.open(path).convert("RGB")
+            img = safe_image_open(path)
             images = [(1, img)]
 
         # Inference per image

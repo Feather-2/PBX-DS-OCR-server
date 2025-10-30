@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 from ...security.auth import verify_api_key
 from ...integrations.publisher import Publisher
 from ...storage import get_job_paths
+from ...utils.security import validate_task_id, validate_path_in_storage
 
 
 router = APIRouter(prefix="/v1", tags=["publish"], dependencies=[Depends(verify_api_key)])
@@ -25,11 +26,14 @@ async def publish_task(
     task_id: str,
     backend: Optional[Literal["local", "oss"]] = Query(None),
 ):
+    if not validate_task_id(task_id):
+        raise HTTPException(status_code=400, detail="Invalid task_id format")
+
     settings, publisher, _ = _ctx(request)
     # Temporary backend override for this call
     pub = Publisher(settings) if backend and backend != settings.publish_backend else publisher
 
-    job_root = Path(settings.storage_root) / task_id
+    job_root = validate_path_in_storage(settings.storage_root, Path(settings.storage_root) / task_id)
     if not job_root.exists():
         raise HTTPException(status_code=404, detail="Task not found")
     paths = get_job_paths(settings.storage_root, task_id)
@@ -45,8 +49,11 @@ async def create_download_token(
     max_downloads: int = 1,
     expire_seconds: int = 3600,
 ):
+    if not validate_task_id(task_id):
+        raise HTTPException(status_code=400, detail="Invalid task_id format")
+
     settings, _, token_mgr = _ctx(request)
-    job_root = Path(settings.storage_root) / task_id
+    job_root = validate_path_in_storage(settings.storage_root, Path(settings.storage_root) / task_id)
     if not job_root.exists():
         raise HTTPException(status_code=404, detail="Task not found")
 
@@ -103,8 +110,12 @@ async def download_by_token(request: Request, token: str):
             raise HTTPException(status_code=500, detail="signing failed")
         return RedirectResponse(url)
     else:
-        if not t.file_path or not Path(t.file_path).exists():
+        if not t.file_path:
+            raise HTTPException(status_code=404, detail="File path not found")
+        # 验证文件路径在 storage_root 内
+        file_path = validate_path_in_storage(settings.storage_root, t.file_path)
+        if not file_path.exists():
             raise HTTPException(status_code=404, detail="File not found")
-        filename = Path(t.file_path).name
-        return FileResponse(t.file_path, filename=filename)
+        filename = file_path.name
+        return FileResponse(file_path, filename=filename)
 

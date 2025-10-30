@@ -11,6 +11,7 @@ from ...security.auth import verify_api_key
 from ...schemas import CreateTaskRequest, CreateTaskResponse, JobStatus, TaskProgress
 from ...storage import init_storage, new_job, load_status
 from ...utils.pdf import get_pdf_page_count
+from ...utils.security import validate_task_id, validate_path_in_storage
 from ...domain.job import Job
 
 
@@ -149,6 +150,9 @@ async def create_task_upload(
 
 @router.get("/tasks/{task_id}", response_model=TaskProgress)
 async def get_task(request: Request, task_id: str):
+    if not validate_task_id(task_id):
+        raise HTTPException(status_code=400, detail="Invalid task_id format")
+
     settings, job_queue = _services(request)
     job = job_queue.get(task_id)
     if not job:
@@ -186,8 +190,11 @@ async def get_task(request: Request, task_id: str):
 
 @router.get("/tasks/{task_id}/result.md")
 async def download_md(request: Request, task_id: str):
+    if not validate_task_id(task_id):
+        raise HTTPException(status_code=400, detail="Invalid task_id format")
+
     settings, _ = _services(request)
-    md = Path(settings.storage_root) / task_id / "output" / "full.md"
+    md = validate_path_in_storage(settings.storage_root, Path(settings.storage_root) / task_id / "output" / "full.md")
     if not md.exists():
         raise HTTPException(status_code=404, detail="Result not generated yet")
     return FileResponse(md)
@@ -195,8 +202,11 @@ async def download_md(request: Request, task_id: str):
 
 @router.get("/tasks/{task_id}/result.json")
 async def download_json(request: Request, task_id: str):
+    if not validate_task_id(task_id):
+        raise HTTPException(status_code=400, detail="Invalid task_id format")
+
     settings, _ = _services(request)
-    jf = Path(settings.storage_root) / task_id / "output" / "layout.json"
+    jf = validate_path_in_storage(settings.storage_root, Path(settings.storage_root) / task_id / "output" / "layout.json")
     if not jf.exists():
         raise HTTPException(status_code=404, detail="Result not generated yet")
     return FileResponse(jf)
@@ -204,8 +214,11 @@ async def download_json(request: Request, task_id: str):
 
 @router.get("/tasks/{task_id}/download.zip")
 async def download_zip(request: Request, task_id: str):
+    if not validate_task_id(task_id):
+        raise HTTPException(status_code=400, detail="Invalid task_id format")
+
     settings, _ = _services(request)
-    zf = Path(settings.storage_root) / task_id / "result.zip"
+    zf = validate_path_in_storage(settings.storage_root, Path(settings.storage_root) / task_id / "result.zip")
     if not zf.exists():
         raise HTTPException(status_code=404, detail="Archive not generated yet")
     return FileResponse(zf, filename=f"{task_id}.zip")
@@ -215,8 +228,12 @@ async def download_zip(request: Request, task_id: str):
 async def delete_task(request: Request, task_id: str):
     import shutil
 
+    if not validate_task_id(task_id):
+        raise HTTPException(status_code=400, detail="Invalid task_id format")
+
     settings, _ = _services(request)
-    root = Path(settings.storage_root) / task_id
+    root = validate_path_in_storage(settings.storage_root, Path(settings.storage_root) / task_id)
+
     if not root.exists():
         raise HTTPException(status_code=404, detail="Task not found")
     shutil.rmtree(root, ignore_errors=True)
@@ -227,6 +244,9 @@ async def delete_task(request: Request, task_id: str):
 async def get_image(request: Request, task_id: str, path: str):
     """Serve local images safely (prevent path traversal)."""
     from urllib.parse import unquote
+
+    if not validate_task_id(task_id):
+        raise HTTPException(status_code=400, detail="Invalid task_id format")
 
     settings, _ = _services(request)
     base = Path(settings.storage_root) / task_id / "output" / "images"
