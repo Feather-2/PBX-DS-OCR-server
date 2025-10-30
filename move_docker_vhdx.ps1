@@ -3,7 +3,7 @@
 
 $SourcePath = Join-Path $env:USERPROFILE "AppData\Local\Docker\wsl"
 $TargetPath = "G:\dockerfile\wsl"
-$BackupPath = "C:\Users\wing\AppData\Local\Docker\wsl.backup"
+$BackupPath = Join-Path $env:USERPROFILE "AppData\Local\Docker\wsl.backup"
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "Docker VHDX 文件迁移到 G:\dockerfile" -ForegroundColor Cyan
