@@ -144,6 +144,51 @@ class Settings(BaseSettings):
             return [str(x).strip() for x in v if str(x).strip()]
         return v
 
+    @field_validator("max_upload_mb")
+    @classmethod
+    def validate_max_upload(cls, v):
+        if v < 1:
+            raise ValueError("max_upload_mb must be >= 1")
+        if v > 10240:  # 10GB 上限
+            raise ValueError("max_upload_mb too large (max 10240)")
+        return v
+
+    @field_validator("max_pages")
+    @classmethod
+    def validate_max_pages(cls, v):
+        if v < 1:
+            raise ValueError("max_pages must be >= 1")
+        if v > 10000:  # 合理上限
+            raise ValueError("max_pages too large (max 10000)")
+        return v
+
+    @field_validator("upload_chunk_mb", "download_chunk_mb")
+    @classmethod
+    def validate_chunk_size(cls, v):
+        if v < 1:
+            raise ValueError("chunk size must be >= 1MB")
+        if v > 1024:  # 1GB 上限
+            raise ValueError("chunk size too large (max 1024MB)")
+        return v
+
+    @field_validator("max_workers")
+    @classmethod
+    def validate_max_workers(cls, v):
+        if v < 1:
+            raise ValueError("max_workers must be >= 1")
+        if v > 128:  # 合理上限
+            raise ValueError("max_workers too large (max 128)")
+        return v
+
+    @field_validator("max_queue_size")
+    @classmethod
+    def validate_max_queue_size(cls, v):
+        if v < 1:
+            raise ValueError("max_queue_size must be >= 1")
+        if v > 10000:  # 合理上限
+            raise ValueError("max_queue_size too large (max 10000)")
+        return v
+
     # No validator for cors_allow_origins: parsing is done in app.main to avoid env JSON parsing
 
 

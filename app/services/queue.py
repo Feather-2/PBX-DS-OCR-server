@@ -51,6 +51,9 @@ class JobQueue:
                 pass
             return True
         except queue.Full:
+            # 队列满时，从 _jobs 中移除已添加的 job（回滚）
+            with self._lock:
+                self._jobs.pop(job.task_id, None)
             return False
 
     def get(self, task_id: str) -> Optional[Job]:

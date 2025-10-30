@@ -61,6 +61,16 @@ def write_text(path: Path, text: str):
 
 def write_json(path: Path, data):
     """Atomically write JSON to avoid partial reads."""
+    # 检查是否需要写入（避免不必要的磁盘操作）
+    if path.exists():
+        try:
+            existing = json.loads(path.read_text(encoding="utf-8"))
+            if existing == data:
+                return  # 内容相同，跳过写入
+        except Exception:
+            # 如果读取失败，继续写入
+            pass
+
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     with tmp.open("w", encoding="utf-8") as f:

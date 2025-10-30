@@ -8,7 +8,6 @@ from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, R
 from fastapi.responses import FileResponse
 
 from ...security.auth import verify_api_key
-from ...config import load_settings
 from ...schemas import CreateTaskRequest, CreateTaskResponse, JobStatus, TaskProgress
 from ...storage import init_storage, new_job, load_status
 from ...utils.pdf import get_pdf_page_count
@@ -90,12 +89,13 @@ async def create_task_upload(
     storage_root = init_storage(settings.storage_root)
     task_id, paths = new_job(storage_root.as_posix(), filename=file.filename or "input.pdf")
 
-    # Stream upload to file with size limit
+    # Stream upload to file with size limit (使用原子写入)
     chunk_size = max(1, settings.upload_chunk_mb) * 1024 * 1024
     max_size = max(1, settings.max_upload_mb) * 1024 * 1024
     total = 0
+    tmp_file = paths.input_file.with_suffix(paths.input_file.suffix + ".tmp")
     try:
-        with paths.input_file.open("wb") as out:
+        with tmp_file.open("wb") as out:
             while True:
                 chunk = await file.read(chunk_size)
                 if not chunk:
@@ -104,6 +104,16 @@ async def create_task_upload(
                 if total > max_size:
                     raise HTTPException(status_code=413, detail=f"File too large (> {settings.max_upload_mb}MB)")
                 out.write(chunk)
+        # 原子替换：仅在写入成功后才替换原文件
+        tmp_file.replace(paths.input_file)
+    except Exception:
+        # 清理临时文件
+        if tmp_file.exists():
+            try:
+                tmp_file.unlink()
+            except Exception:
+                pass
+        raise
     finally:
         await file.close()
 
@@ -219,10 +229,29 @@ async def get_image(request: Request, task_id: str, path: str):
     from urllib.parse import unquote
 
     settings, _ = _services(request)
-    base = (Path(settings.storage_root) / task_id / "output" / "images").resolve()
-    target = (base / Path(unquote(path))).resolve()
-    if not str(target).startswith(str(base)):
-        raise HTTPException(status_code=403, detail="Invalid path")
-    if not target.exists() or not target.is_file():
-        raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(target)
+    base = Path(settings.storage_root) / task_id / "output" / "images"
+    base_resolved = base.resolve()
+
+    # 只取路径的最后一部分（文件名），防止路径遍历
+    try:
+        # 解析并清理路径
+        path_parts = Path(unquote(path)).parts
+        # 只使用文件名部分，忽略任何目录遍历尝试
+        filename = path_parts[-1] if path_parts else ""
+
+        # 验证文件名安全（只允许字母、数字、点、下划线、连字符）
+        if not filename or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for c in filename):
+            raise HTTPException(status_code=403, detail="Invalid filename")
+
+        target = (base_resolved / filename).resolve()
+
+        # 确保目标文件是 base 的子路径（使用 relative_to 更安全）
+        target.relative_to(base_resolved)
+
+        if not target.exists() or not target.is_file():
+            raise HTTPException(status_code=404, detail="File not found")
+        return FileResponse(target)
+    except (ValueError, OSError) as exc:
+        # ValueError: 路径不在 base 内
+        # OSError: 文件系统错误
+        raise HTTPException(status_code=403, detail="Invalid path") from exc

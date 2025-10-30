@@ -12,14 +12,32 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 async def request_logger(request: Request, call_next: Callable):
     start = time.time()
+    logger = logging.getLogger("dsocr-service")
+    response = None
     try:
         response = await call_next(request)
         return response
     finally:
         dur = (time.time() - start) * 1000
+        # 根据响应状态码选择日志级别
+        status_code = 0
+        if response is not None:
+            status_code = getattr(response, 'status_code', 0)
+        else:
+            # 如果响应为空，可能是异常情况
+            status_code = 500
+
+        if status_code >= 500:
+            log_level = logging.ERROR
+        elif status_code >= 400:
+            log_level = logging.WARNING
+        else:
+            log_level = logging.INFO
+
         # 不记录 Authorization 头
-        logging.getLogger("dsocr-service").info(
-            f"{request.method} {request.url.path} -> {getattr(request.state, 'status', '')} {dur:.1f}ms"
+        logger.log(
+            log_level,
+            f"{request.method} {request.url.path} -> {status_code} {dur:.1f}ms"
         )
 
 

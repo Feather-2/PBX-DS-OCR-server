@@ -6,14 +6,24 @@ GPU 工具：封装 NVML 查询，提供显存信息。
 同时提供系统内存监控。
 """
 
+import threading
 from typing import Optional, Tuple
+
+# NVML 全局状态管理
+_nvml_initialized = False
+_nvml_lock = threading.Lock()
 
 
 def get_gpu_memory_gb(gpu_index: int = 0) -> Optional[Tuple[float, float]]:
+    """
+    获取 GPU 显存信息（可用显存，总显存），单位 GB。
+    使用全局 NVML 状态管理，避免重复初始化/关闭。
+    """
+    global _nvml_initialized
+
     try:
         from pynvml import (
             nvmlInit,
-            nvmlShutdown,
             nvmlDeviceGetHandleByIndex,
             nvmlDeviceGetMemoryInfo,
         )
@@ -21,19 +31,20 @@ def get_gpu_memory_gb(gpu_index: int = 0) -> Optional[Tuple[float, float]]:
         return None
 
     try:
-        nvmlInit()
-        handle = nvmlDeviceGetHandleByIndex(gpu_index)
-        info = nvmlDeviceGetMemoryInfo(handle)
-        free_gb = info.free / (1024 ** 3)
-        total_gb = info.total / (1024 ** 3)
-        return float(free_gb), float(total_gb)
+        with _nvml_lock:
+            # 只初始化一次
+            if not _nvml_initialized:
+                nvmlInit()
+                _nvml_initialized = True
+
+            handle = nvmlDeviceGetHandleByIndex(gpu_index)
+            info = nvmlDeviceGetMemoryInfo(handle)
+            free_gb = info.free / (1024 ** 3)
+            total_gb = info.total / (1024 ** 3)
+            return float(free_gb), float(total_gb)
     except Exception:
         return None
-    finally:
-        try:
-            nvmlShutdown()
-        except Exception:
-            pass
+    # 注意：不在这里关闭 NVML，让进程退出时自动清理
 
 
 def get_system_memory_gb() -> Optional[Tuple[float, float]]:

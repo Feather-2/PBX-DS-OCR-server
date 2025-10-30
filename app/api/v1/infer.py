@@ -9,6 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from ...security.auth import verify_api_key
 
+# 常量定义
+IMAGE_QUALITY_B64 = 85
+
 
 router = APIRouter(tags=["inference"], dependencies=[Depends(verify_api_key)])
 
@@ -19,7 +22,7 @@ def _img_to_b64(image) -> str:
 
         buf = io.BytesIO()
         # 统一导出 JPEG，便于前端快速渲染
-        image.convert("RGB").save(buf, format="JPEG", quality=85)
+        image.convert("RGB").save(buf, format="JPEG", quality=IMAGE_QUALITY_B64)
         return base64.b64encode(buf.getvalue()).decode("ascii")
     except Exception:
         return ""
@@ -163,8 +166,17 @@ async def layout_parsing(request: Request, payload: Dict[str, Any]):
     except HTTPException:
         raise
     except Exception as e:
+        import logging
+        logger = logging.getLogger("dsocr-service")
+        logger.exception("Inference failed")
+
+        # 根据日志级别决定是否返回详细错误信息
+        error_msg = "Internal server error"
+        if app.state.settings.log_level.lower() == "debug":
+            error_msg = str(e)
+
         return {
             "logId": log_id,
             "errorCode": 500,
-            "errorMsg": str(e),
+            "errorMsg": error_msg,
         }

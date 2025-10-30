@@ -8,6 +8,7 @@ from __future__ import annotations
 """
 
 import json
+import queue
 import secrets
 import threading
 import time
@@ -47,6 +48,12 @@ class TokenManager:
             self._oss = OssClient(settings)
         self._load()
 
+        # 异步写入队列（优化高并发场景的文件 I/O）
+        self._write_queue: queue.Queue[Optional[Dict]] = queue.Queue()
+        self._write_thread = threading.Thread(target=self._batch_writer, name="token-writer", daemon=True)
+        self._write_thread.start()
+        self._pending_save = False
+
     def _load(self):
         self._path.parent.mkdir(parents=True, exist_ok=True)
         if self._path.exists():
@@ -55,9 +62,37 @@ class TokenManager:
             except Exception:
                 self._data = {}
 
-    def _save(self):
-        tmp = json.dumps(self._data, ensure_ascii=False, indent=2)
-        self._path.write_text(tmp, encoding="utf-8")
+    def _save(self, sync: bool = False):
+        """
+        保存数据到文件。
+        sync=True 时同步写入，否则异步写入（默认）。
+        """
+        if sync:
+            # 同步写入：立即写入文件
+            tmp = json.dumps(self._data, ensure_ascii=False, indent=2)
+            self._path.write_text(tmp, encoding="utf-8")
+        else:
+            # 异步写入：放入队列
+            if not self._pending_save:
+                self._pending_save = True
+                self._write_queue.put(self._data.copy())
+
+    def _batch_writer(self):
+        """后台线程：批量写入文件"""
+        while True:
+            try:
+                data = self._write_queue.get(timeout=1.0)
+                if data is None:  # 退出信号
+                    break
+                tmp = json.dumps(data, ensure_ascii=False, indent=2)
+                self._path.write_text(tmp, encoding="utf-8")
+                self._pending_save = False
+            except queue.Empty:
+                continue
+            except Exception:
+                # 写入失败不影响主流程
+                self._pending_save = False
+                pass
 
     def create_token(
         self,

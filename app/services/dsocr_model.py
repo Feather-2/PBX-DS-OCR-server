@@ -29,6 +29,12 @@ from PIL import Image
 
 from ..config import Settings
 
+# 常量定义
+DEFAULT_DPI = 144
+DEFAULT_ZOOM = DEFAULT_DPI / 72.0
+IMAGE_QUALITY_JPEG = 85
+IMAGE_QUALITY_INFERENCE = 95
+
 
 def _parse_dtype(name: str):
     try:
@@ -93,7 +99,7 @@ def _parse_page_ranges(spec: Optional[str], total_pages: int) -> List[int]:
     return out or list(range(1, total_pages + 1))
 
 
-def _pdf_to_images(path: Path, dpi: int = 144, pages: Optional[List[int]] = None) -> List[Image.Image]:
+def _pdf_to_images(path: Path, dpi: int = DEFAULT_DPI, pages: Optional[List[int]] = None) -> List[Image.Image]:
     """Render PDF pages to PIL Images using PyMuPDF (fitz).
     `pages` is 1-based indices to include; if None, include all.
     """
@@ -103,7 +109,7 @@ def _pdf_to_images(path: Path, dpi: int = 144, pages: Optional[List[int]] = None
         raise RuntimeError("PyMuPDF is required for PDF rendering. Install `PyMuPDF`." ) from e
 
     images: List[Image.Image] = []
-    zoom = dpi / 72.0
+    zoom = dpi / 72.0  # 72 DPI 是 PDF 的标准分辨率
     mat = fitz.Matrix(zoom, zoom)
     with fitz.open(path.as_posix()) as doc:
         total = doc.page_count
@@ -150,7 +156,7 @@ class DSResult:
             for k, img in self.markdown_images.items():
                 p = img_out / f"page_{self.page_index:04d}_{idx:02d}.jpg"
                 try:
-                    img.convert("RGB").save(p, format="JPEG", quality=85)
+                    img.convert("RGB").save(p, format="JPEG", quality=IMAGE_QUALITY_JPEG)
                 except Exception:
                     pass
                 idx += 1
@@ -265,7 +271,7 @@ class DeepSeekOCRModel:
             self._model = self._model.eval()
             if self.runtime_device == "gpu":
                 self._model = self._model.to(self._device)
-                if self._dtype is not None and self._dtype is not None:
+                if self._dtype is not None:
                     try:
                         self._model = self._model.to(self._dtype)
                     except Exception:
@@ -354,7 +360,7 @@ class DeepSeekOCRModel:
         try:
             tmp_dir = tempfile.mkdtemp(prefix="dsocr_")
             tmp_img_path = os.path.join(tmp_dir, "input.jpg")
-            image.convert("RGB").save(tmp_img_path, format="JPEG", quality=95)
+            image.convert("RGB").save(tmp_img_path, format="JPEG", quality=IMAGE_QUALITY_INFERENCE)
 
             # Inference
             infer_kwargs = dict(
@@ -377,14 +383,13 @@ class DeepSeekOCRModel:
                 raw_json=raw_json,
             )
         finally:
-            # cleanup temp dir
-            try:
-                if tmp_img_path and Path(tmp_img_path).exists():
-                    Path(tmp_img_path).unlink(missing_ok=True)  # type: ignore[arg-type]
-                if tmp_dir:
-                    Path(tmp_dir).rmdir()
-            except Exception:
-                pass
+            # cleanup temp dir (使用 shutil.rmtree 以确保完全清理)
+            if tmp_dir:
+                try:
+                    import shutil
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
+                except Exception:
+                    pass
 
     def _build_prompt(self, *, is_ocr: bool, enable_formula: bool, enable_table: bool) -> str:
         override = getattr(self.s, "ds_prompt_override", None)
