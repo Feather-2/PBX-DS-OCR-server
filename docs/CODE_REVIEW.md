@@ -71,20 +71,33 @@
   - `validate_max_workers`: 验证最大工作线程数 (1 - 128)
   - `validate_max_queue_size`: 验证队列大小 (1 - 10000)
 
-### 8. 测试覆盖
+### 8. 测试覆盖（已补充最小集） ✅
 
-#### 8.1 缺少单元测试
-**问题**: 项目中未发现测试文件
+**现状**:
+- 已新增最小测试套件，覆盖：
+  - 安全工具：`validate_task_id`、`validate_path_in_storage`
+  - 端点基础流程：上传/进度查询、`result-images` 路径遍历与扩展名白名单
+  - Token 流程：本地后端一次性下载（消费后 404）
+  - 可选子目录：`APP_RESULT_IMAGES_ALLOW_SUBDIRS=true` 时子目录访问 200
 
 **建议**:
-- 添加单元测试，特别是：
-  - API 端点测试
-  - 并发安全测试
-  - 路径遍历防护测试
-  - 资源清理测试
-  - 配置验证测试
+- 后续可扩充：并发安全、资源清理、配置边界与大文件分批路径等。
 
-**优先级**: P2 (计划中)
+**优先级**: P2（持续完善）
+
+---
+
+## 🔒 新增配置与安全加固（已完成）
+
+**位置**: `app/api/v1/tasks.py`, `app/services/pipeline.py`, `app/services/dsocr_model.py`, `app/config.py`
+
+**内容**:
+- 图片尺寸上限可配置：`APP_IMAGE_MAX_WIDTH` / `APP_IMAGE_MAX_HEIGHT`（默认 8192x8192）；PDF 渲染与单图输入均按配置限幅，避免 OOM。
+- 下载端点白名单与长度限制：`APP_RESULT_IMAGES_ALLOWED_EXTS`、`APP_RESULT_IMAGES_FILENAME_MAXLEN`；默认仅允许 `.png,.jpg,.jpeg,.webp,.bmp`，超长文件名拒绝。
+- 子目录访问开关：`APP_RESULT_IMAGES_ALLOW_SUBDIRS=false`（默认关闭）。开启时进行路径规范化与越界校验。
+- 输出图片写入加固：仅保留文件名写入 `images/` 子目录，杜绝越界写入。
+
+**测试**: 已覆盖非法扩展名 403、合法 PNG 200、允许子目录=true 时子路径 200。
 
 ---
 

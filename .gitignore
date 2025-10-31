@@ -6,6 +6,6 @@
 /app/integrations/oss/__pycache__
 *.pyc
 /DeepSeek-OCR-main
-/docs
+# Keep docs tracked (remove ignore); specific generated artifacts can be ignored separately if needed
 docs/FIXES_SUMMARY.md
 docs/FIXES_SUMMARY.md
