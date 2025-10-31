@@ -23,6 +23,12 @@ env:
   APP_DS_DTYPE: "bfloat16"
   APP_DS_USE_FLASH_ATTN: "true"
   APP_STORAGE_ROOT: "/data/jobs"
+  # Images & downloads security
+  APP_IMAGE_MAX_WIDTH: "8192"
+  APP_IMAGE_MAX_HEIGHT: "8192"
+  APP_RESULT_IMAGES_ALLOWED_EXTS: ".png,.jpg,.jpeg,.webp,.bmp"
+  APP_RESULT_IMAGES_FILENAME_MAXLEN: "128"
+  APP_RESULT_IMAGES_ALLOW_SUBDIRS: "false"
 
 apiKeys: []  # e.g. ["sk_xxx", "sk_yyy"]
 

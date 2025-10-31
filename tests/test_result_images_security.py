@@ -43,3 +43,18 @@ def test_result_images_allows_png(client, tmp_storage_root):
 
     # Assert: served
     assert r.status_code == 200
+
+
+def test_result_images_allow_subdirs_when_enabled(client, app_instance, tmp_storage_root, monkeypatch):
+    # Enable subdirs in settings
+    app_instance.state.settings.result_images_allow_subdirs = True
+
+    from app.storage import new_job
+    task_id, paths = new_job(tmp_storage_root, filename="input.pdf")
+    sub = paths.images_dir / "a" / "b"
+    sub.mkdir(parents=True, exist_ok=True)
+    (sub / "x.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+
+    # Directly access with subdirectory path
+    r = client.get(f"/v1/tasks/{task_id}/result-images/a/b/x.png")
+    assert r.status_code == 200
