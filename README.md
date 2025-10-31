@@ -61,6 +61,11 @@ Key Settings (env vars)
 - `APP_CONSOLE_SESSION_MAX_AGE`: cookie max-age seconds (default 86400)
 - `APP_SESSION_SECRET`: optional HMAC secret for console session (random if unset)
 - `APP_COOKIE_SECURE`: set `true` for HTTPS-only cookies in production
+ - Images & downloads security:
+   - `APP_IMAGE_MAX_WIDTH` / `APP_IMAGE_MAX_HEIGHT`: limit rendered/single image max size (default 8192x8192)
+   - `APP_RESULT_IMAGES_ALLOWED_EXTS`: allowed extensions for `/result-images` (default `.png,.jpg,.jpeg,.webp,.bmp`)
+   - `APP_RESULT_IMAGES_FILENAME_MAXLEN`: max filename length for downloads (default 128)
+   - `APP_RESULT_IMAGES_ALLOW_SUBDIRS`: allow subdirectories under `images/` (default false)
 
 CI/CD (GitHub Actions)
 - Workflow `.github/workflows/docker.yml` builds Docker Hub images:

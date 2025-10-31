@@ -206,8 +206,12 @@ class DocumentPipeline:
             for item in images_items:
                 for rel_path, image in item.items():
                     try:
-                        rel = str(rel_path).lstrip("/")
-                        out_path = (job_paths.output_dir / rel)
+                        # 归一化相对路径，限制在 images 子目录内，防止越界写入
+                        rel = str(rel_path).lstrip("/\\")
+                        # 只保留文件名，避免目录穿越
+                        from pathlib import Path as _P
+                        fname = _P(rel).name
+                        out_path = (job_paths.images_dir / fname)
                         out_path.parent.mkdir(parents=True, exist_ok=True)
                         image.save(out_path)
                     except Exception:

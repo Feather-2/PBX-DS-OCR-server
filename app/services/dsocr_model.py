@@ -37,6 +37,24 @@ IMAGE_QUALITY_INFERENCE = 95
 MAX_IMAGE_SIZE = (8192, 8192)  # 最大图片尺寸 (width, height)，防止 DoS
 
 
+def _resize_to_fit(img: Image.Image, max_size: tuple[int, int]) -> Image.Image:
+    """
+    将图片按比例缩放至不超过 max_size，保持宽高比。
+    如果已在范围内则直接返回原图。
+    """
+    w, h = img.size
+    mw, mh = max_size
+    if w <= mw and h <= mh:
+        return img
+    # 计算缩放因子
+    scale = min(mw / float(max(1, w)), mh / float(max(1, h)))
+    nw, nh = max(1, int(w * scale)), max(1, int(h * scale))
+    try:
+        return img.resize((nw, nh))
+    except Exception:
+        return img
+
+
 def safe_image_open(path: Path) -> Image.Image:
     """
     安全打开图片，限制尺寸以防止 DoS 攻击。
@@ -123,7 +141,13 @@ def _parse_page_ranges(spec: Optional[str], total_pages: int) -> List[int]:
     return out or list(range(1, total_pages + 1))
 
 
-def _pdf_to_images(path: Path, dpi: int = DEFAULT_DPI, pages: Optional[List[int]] = None) -> List[Image.Image]:
+def _pdf_to_images(
+    path: Path,
+    dpi: int = DEFAULT_DPI,
+    pages: Optional[List[int]] = None,
+    *,
+    max_size: Optional[tuple[int, int]] = None,
+) -> List[Image.Image]:
     """Render PDF pages to PIL Images using PyMuPDF (fitz).
     `pages` is 1-based indices to include; if None, include all.
     """
@@ -143,6 +167,9 @@ def _pdf_to_images(path: Path, dpi: int = DEFAULT_DPI, pages: Optional[List[int]
             page = doc.load_page(i)
             pm = page.get_pixmap(matrix=mat, alpha=False)
             img = Image.open(io.BytesIO(pm.tobytes("png"))).convert("RGB")
+            # 限制图片最大尺寸，避免极端大页导致 OOM
+            if max_size:
+                img = _resize_to_fit(img, max_size)
             images.append(img)
     return images
 
@@ -353,7 +380,14 @@ class DeepSeekOCRModel:
             except Exception:
                 total = 0
             pages = _parse_page_ranges(page_ranges, total) if total > 0 else None
-            pil_images = _pdf_to_images(path, dpi=DEFAULT_DPI, pages=pages)
+            # 根据 settings 控制渲染后图片的最大尺寸
+            try:
+                max_w = int(getattr(self.s, "image_max_width", MAX_IMAGE_SIZE[0]))
+                max_h = int(getattr(self.s, "image_max_height", MAX_IMAGE_SIZE[1]))
+                max_size = (max_w, max_h)
+            except Exception:
+                max_size = (MAX_IMAGE_SIZE[0], MAX_IMAGE_SIZE[1])
+            pil_images = _pdf_to_images(path, dpi=DEFAULT_DPI, pages=pages, max_size=max_size)
             # Map 1-based page indexes aligning with pages list when provided
             if pages:
                 images = list(zip(pages, pil_images))
@@ -361,6 +395,13 @@ class DeepSeekOCRModel:
                 images = [(i + 1, im) for i, im in enumerate(pil_images)]
         else:
             img = safe_image_open(path)
+            # 进一步收敛到 settings 设定的最大尺寸
+            try:
+                max_w = int(getattr(self.s, "image_max_width", MAX_IMAGE_SIZE[0]))
+                max_h = int(getattr(self.s, "image_max_height", MAX_IMAGE_SIZE[1]))
+                img = _resize_to_fit(img, (max_w, max_h))
+            except Exception:
+                pass
             images = [(1, img)]
 
         # Inference per image
