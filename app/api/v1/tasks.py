@@ -262,12 +262,25 @@ async def get_image(request: Request, task_id: str, path: str):
         # 验证文件名安全（只允许字母、数字、点、下划线、连字符），并限制扩展名
         if not filename or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for c in filename):
             raise HTTPException(status_code=403, detail="Invalid filename")
-        allowed_ext = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+        # 文件名长度限制
+        maxlen = max(32, int(getattr(settings, "result_images_filename_maxlen", 128)))
+        if len(filename) > maxlen:
+            raise HTTPException(status_code=403, detail="Filename too long")
+        # 扩展名白名单（可配置）
+        allowed_cfg = getattr(settings, "result_images_allowed_exts", ".png,.jpg,.jpeg,.webp,.bmp")
+        allowed_ext = {x.strip().lower() for x in str(allowed_cfg).split(",") if x.strip()}
         from pathlib import Path as _P
         if _P(filename).suffix.lower() not in allowed_ext:
             raise HTTPException(status_code=403, detail="Invalid file type")
 
-        target = (base_resolved / filename).resolve()
+        # 是否允许子目录（默认不允许，仅文件名）
+        allow_sub = bool(getattr(settings, "result_images_allow_subdirs", False))
+        if allow_sub:
+            # 如果允许子目录，则对传入路径进行规范化并校验
+            norm_rel = Path(unquote(path)).as_posix().lstrip("/\\")
+            target = (base_resolved / norm_rel).resolve()
+        else:
+            target = (base_resolved / filename).resolve()
 
         # 确保目标文件是 base 的子路径（使用 relative_to 更安全）
         target.relative_to(base_resolved)

@@ -30,6 +30,15 @@ def test_create_task_upload_and_get_result_paths(client, tmp_storage_root):
     r3 = client.get(f"/v1/tasks/{task_id}/result-images/..%2F..%2Fetc%2Fpasswd")
     assert r3.status_code in (403, 404)  # 403 invalid filename or 404 not found
 
+    # Disallowed extension rejected
+    # create a fake .txt file in images dir then try to fetch it
+    from app.storage import get_job_paths
+    paths = get_job_paths(tmp_storage_root, task_id)
+    (paths.images_dir).mkdir(parents=True, exist_ok=True)
+    (paths.images_dir / "note.txt").write_text("x", encoding="utf-8")
+    r4 = client.get(f"/v1/tasks/{task_id}/result-images/note.txt")
+    assert r4.status_code == 403
+
 
 def test_token_flow_local_backend(client, app_instance, tmp_storage_root):
     # Arrange a fake job output

@@ -64,6 +64,16 @@ class Settings(BaseSettings):
     enable_auto_batch: bool = os.getenv("APP_ENABLE_AUTO_BATCH", "true").lower() == "true"  # 大文件自动分批
     batch_page_size: int = int(os.getenv("APP_BATCH_PAGE_SIZE", "50"))  # 每批处理页数
 
+    # Images
+    image_max_width: int = int(os.getenv("APP_IMAGE_MAX_WIDTH", "8192"))
+    image_max_height: int = int(os.getenv("APP_IMAGE_MAX_HEIGHT", "8192"))
+    # 结果图片下载端点的扩展名白名单（逗号分隔）
+    result_images_allowed_exts: str = os.getenv(
+        "APP_RESULT_IMAGES_ALLOWED_EXTS", ".png,.jpg,.jpeg,.webp,.bmp"
+    )
+    result_images_filename_maxlen: int = int(os.getenv("APP_RESULT_IMAGES_FILENAME_MAXLEN", "128"))
+    result_images_allow_subdirs: bool = os.getenv("APP_RESULT_IMAGES_ALLOW_SUBDIRS", "false").lower() == "true"
+
     # Backend
     backend: str = os.getenv("APP_BACKEND", "hf")  # hf | vllm
     enable_model: bool = os.getenv("APP_ENABLE_DS_MODEL", "true").lower() == "true"
@@ -187,6 +197,24 @@ class Settings(BaseSettings):
             raise ValueError("max_queue_size must be >= 1")
         if v > 10000:  # 合理上限
             raise ValueError("max_queue_size too large (max 10000)")
+        return v
+
+    @field_validator("image_max_width", "image_max_height")
+    @classmethod
+    def validate_image_max_size(cls, v):
+        if v < 256:
+            raise ValueError("image max size must be >= 256")
+        if v > 16384:
+            raise ValueError("image max size too large (max 16384)")
+        return v
+
+    @field_validator("result_images_filename_maxlen")
+    @classmethod
+    def validate_filename_maxlen(cls, v):
+        if v < 32:
+            raise ValueError("filename max length must be >= 32")
+        if v > 512:
+            raise ValueError("filename max length too large (max 512)")
         return v
 
     # No validator for cors_allow_origins: parsing is done in app.main to avoid env JSON parsing
