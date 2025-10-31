@@ -17,20 +17,20 @@ Quickstart (local)
 
 Docker
 CPU image:
-- Build: `docker build -f Dockerfile.cpu -t dsocr-server:cpu .`
-- Run: `docker run --rm -p 8000:8000 -e APP_API_KEYS="sk_xxx" dsocr-server:cpu`
+- Build: `docker build -f Dockerfile.cpu -t yourrepo/dsocr-server:v0.2.0 .`
+- Run: `docker run --rm -p 8000:8000 -e APP_API_KEYS="sk_xxx" yourrepo/dsocr-server:v0.2.0`
 
 GPU image (needs NVIDIA runtime):
-- Build: `docker build -f Dockerfile.gpu -t dsocr-server:gpu .`
-- Run: `docker run --rm --gpus all -p 8000:8000 -e APP_API_KEYS="sk_xxx" dsocr-server:gpu`
+- Build: `docker build -f Dockerfile.gpu -t yourrepo/dsocr-server:v0.2.0 .`
+- Run: `docker run --rm --gpus all -p 8000:8000 -e APP_API_KEYS="sk_xxx" yourrepo/dsocr-server:v0.2.0`
 
  vLLM overlay (fast rebuild; reuses base vLLM image):
- - Build: `docker build -f Dockerfile.vllm.overlay -t dsocr-server:vllm-overlay .`
+ - Build: `docker build -f Dockerfile.vllm.overlay -t yourrepo/dsocr-server:v0.2.0 .`
  - Run (quick health check without loading model):
    - `docker run --rm -p 8000:8000 -e APP_API_KEY=sk_test -e APP_ENABLE_DS_MODEL=false -e APP_BACKEND=vllm dsocr-server:vllm-overlay`
    - Check: `Invoke-WebRequest -UseBasicParsing http://localhost:8000/healthz | Select-Object -ExpandProperty Content`
  - Run (with GPU + model):
-   - `docker run --rm --gpus all -p 8000:8000 -e APP_API_KEY=sk_test -e APP_BACKEND=vllm dsocr-server:vllm-overlay`
+   - `docker run --rm --gpus all -p 8000:8000 -e APP_API_KEY=sk_test -e APP_BACKEND=vllm yourrepo/dsocr-server:v0.2.0`
  - Versioning note: overlay 保持基础镜像中的 transformers/tokenizers 版本以确保与 vLLM 兼容，仅额外安装 DS‑OCR 远程代码依赖（addict/matplotlib/easydict）。
 
 Endpoints
