@@ -106,6 +106,15 @@ def create_app() -> FastAPI:
     async def on_shutdown():
         app.state.job_queue.stop()
         app.state.model_manager.stop()
+        # Gracefully stop background cleanup threads for rate limiters
+        try:
+            rl_default.stop()
+        except Exception:
+            pass
+        try:
+            rl_login.stop()
+        except Exception:
+            pass
 
     # Rate limiters
     rl_default = RateLimiter(

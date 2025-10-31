@@ -376,6 +376,13 @@ logger.log(log_level, ...)
 - 统一使用常量替代硬编码
 
 ---
+
+#### 18. RateLimiter 线程生命周期管理（新增说明） ✅
+**文件**: `app/main.py`, `app/security/rate_limit.py`
+**修复内容**:
+- 在应用 `shutdown` 钩子中增加 `rl_default.stop()` 与 `rl_login.stop()`，确保后台清理线程优雅退出。
+**原因与效果**:
+- 进程内 RateLimiter 启动了守护线程用于定期清理 bucket；显式停止可提升关停阶段的可控性，避免某些环境下出现线程残留或影响进程退出时序。
 **文件**: `app/services/dsocr_model.py`, `app/middleware.py`
 **修复内容**:
 - 修复重复的条件检查 (`self._dtype is not None and self._dtype is not None`)
