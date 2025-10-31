@@ -1,6 +1,6 @@
 image:
   repository: ghcr.io/OWNER/dsocr-server
-  tag: latest
+  tag: v0.2.0
   pullPolicy: IfNotPresent
 
 service:
