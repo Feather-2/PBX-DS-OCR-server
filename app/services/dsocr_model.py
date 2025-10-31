@@ -37,6 +37,24 @@ IMAGE_QUALITY_INFERENCE = 95
 MAX_IMAGE_SIZE = (8192, 8192)  # 最大图片尺寸 (width, height)，防止 DoS
 
 
+def _resize_to_fit(img: Image.Image, max_size: tuple[int, int]) -> Image.Image:
+    """
+    将图片按比例缩放至不超过 max_size，保持宽高比。
+    如果已在范围内则直接返回原图。
+    """
+    w, h = img.size
+    mw, mh = max_size
+    if w <= mw and h <= mh:
+        return img
+    # 计算缩放因子
+    scale = min(mw / float(max(1, w)), mh / float(max(1, h)))
+    nw, nh = max(1, int(w * scale)), max(1, int(h * scale))
+    try:
+        return img.resize((nw, nh))
+    except Exception:
+        return img
+
+
 def safe_image_open(path: Path) -> Image.Image:
     """
     安全打开图片，限制尺寸以防止 DoS 攻击。
@@ -143,6 +161,8 @@ def _pdf_to_images(path: Path, dpi: int = DEFAULT_DPI, pages: Optional[List[int]
             page = doc.load_page(i)
             pm = page.get_pixmap(matrix=mat, alpha=False)
             img = Image.open(io.BytesIO(pm.tobytes("png"))).convert("RGB")
+            # 限制图片最大尺寸，避免极端大页导致 OOM
+            img = _resize_to_fit(img, MAX_IMAGE_SIZE)
             images.append(img)
     return images
 

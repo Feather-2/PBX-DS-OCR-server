@@ -259,9 +259,13 @@ async def get_image(request: Request, task_id: str, path: str):
         # 只使用文件名部分，忽略任何目录遍历尝试
         filename = path_parts[-1] if path_parts else ""
 
-        # 验证文件名安全（只允许字母、数字、点、下划线、连字符）
+        # 验证文件名安全（只允许字母、数字、点、下划线、连字符），并限制扩展名
         if not filename or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for c in filename):
             raise HTTPException(status_code=403, detail="Invalid filename")
+        allowed_ext = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+        from pathlib import Path as _P
+        if _P(filename).suffix.lower() not in allowed_ext:
+            raise HTTPException(status_code=403, detail="Invalid file type")
 
         target = (base_resolved / filename).resolve()
 
