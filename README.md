@@ -1,5 +1,7 @@
 DeepSeek-OCR Server (FastAPI)
 
+*还未经过完善的测试，可能不稳定
+
 A high-performance document OCR server based on DeepSeek-OCR (Transformers),a serverized architecture with DS-OCR. Includes job queue, storage, and optional OSS publishing hooks, plus CI/CD via GitHub Actions to build Docker images (CPU and GPU).
 
 Features
@@ -147,3 +149,4 @@ FAQ
 - CORS 与凭据：当 `APP_CORS_ALLOW_ORIGINS='*'` 且 `APP_CORS_ALLOW_CREDENTIALS=true` 时，会自动关闭凭据以符合 CORS 规范；生产环境请改为明确域名列表。
 - vLLM overlay 版本策略：overlay 仅添加 DS‑OCR 远程代码依赖，不修改 transformers/tokenizers；核心库版本由基础 vLLM 镜像决定。
 - 无模型快速自检：将 `APP_ENABLE_DS_MODEL=false` 可快速起服务并检查 `/healthz`，用于镜像/环境连通性验证。
+
